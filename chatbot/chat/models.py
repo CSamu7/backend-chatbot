@@ -13,8 +13,8 @@ class Chat(models.Model):
 class Message(models.Model):
   chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
   user = models.ForeignKey(User, on_delete=models.CASCADE)
-  content = models.TextField()
+  text = models.TextField()
   send_at = models.DateTimeField(auto_now_add=True)
   
   def __str__(self):
-    return self.content[:50] if len(self.content) > 50 else self.content
+    return self.text[:50] if len(self.text) > 50 else self.text
