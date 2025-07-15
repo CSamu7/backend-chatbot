@@ -1,9 +1,12 @@
 from chat.serializers import ChatSerializer, MessageSerializer
 from chat.models import Chat, Message
 from rest_framework import generics
+from .permissions import ChatPermissions
 # Create your views here.
+# Esto esta fallando!
 class ListPostChats(generics.ListCreateAPIView):
   serializer_class = ChatSerializer
+  permission_classes = [ChatPermissions]
 
   def get_queryset(self):
     pk_user = self.kwargs['pk']
@@ -12,6 +15,7 @@ class ListPostChats(generics.ListCreateAPIView):
 class RetrieveDeleteChat(generics.RetrieveDestroyAPIView):
   queryset = Chat.objects.all()
   serializer_class = ChatSerializer()
+  permission_classes = [ChatPermissions]
 
 class ListPostMessage(generics.ListCreateAPIView):
   queryset = Message.objects.all()
