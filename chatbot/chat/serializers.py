@@ -5,7 +5,8 @@ from authentication.serializers import UsersSerializer
 class ChatSerializer(serializers.ModelSerializer):
   class Meta:
     model = Chat
-    fields = ["id", "title", "created_at"]
+    user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
+    fields = ["id", "title", "created_at", "user"]
 
 class MessageSerializer(serializers.ModelSerializer):
   user = UsersSerializer()
