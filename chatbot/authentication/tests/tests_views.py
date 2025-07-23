@@ -1,4 +1,6 @@
 from rest_framework.test import APIRequestFactory, APIClient, force_authenticate
+from rest_framework import status
+
 from django.test import TestCase
 from ..models import User
 from ..views import RetrieveDeleteUser
@@ -17,7 +19,7 @@ class AuthViewTestCase(TestCase):
 
   def test_return_token_if_db_user_exists(self):
     response = self.client.post('/api/users/auth', data=self.raw_data_user, content_type="application/json")
-    self.assertIs(response.status_code, 200)
+    self.assertIs(response.status_code, status.HTTP_200_OK)
 
   def test_create_new_user(self):
     data = json.dumps({
@@ -27,7 +29,7 @@ class AuthViewTestCase(TestCase):
     })
 
     response = self.client.post('/api/users/', data=data, content_type="application/json")
-    self.assertIs(response.status_code, 201)
+    self.assertIs(response.status_code, status.HTTP_201_CREATED)
 
     user_created = User.objects.get(email="soynuevo@gmail.com")
     self.assertIsNotNone(user_created)
@@ -39,5 +41,5 @@ class AuthViewTestCase(TestCase):
     view = RetrieveDeleteUser().as_view()
 
     response = view(request, pk=user.pk)
-    self.assertIs(response.status_code, 200)
+    self.assertIs(response.status_code, status.HTTP_200_OK)
   
