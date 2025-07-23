@@ -9,6 +9,9 @@ class Chat(models.Model):
 
   def __str__(self):
     return self.title
+  
+  class Meta:
+    ordering = ["created_at"]
 
 class Message(models.Model):
   chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
@@ -16,5 +19,8 @@ class Message(models.Model):
   text = models.TextField()
   send_at = models.DateTimeField(auto_now_add=True)
   
+  class Meta:
+    ordering = ["send_at"]
+
   def __str__(self):
     return self.text[:50] if len(self.text) > 50 else self.text

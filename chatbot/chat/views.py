@@ -2,10 +2,8 @@ from chat.serializers import ChatSerializer, MessageSerializer
 from chat.models import Chat, Message
 from rest_framework import generics
 from .permissions import ChatPermissions
-from authentication.serializers import UsersSerializer
-from pprint import pprint
 
-class ListPostChats(generics.ListAPIView):
+class ListPostChats(generics.ListCreateAPIView):
   serializer_class = ChatSerializer
   permission_classes = [ChatPermissions]
 
@@ -13,9 +11,6 @@ class ListPostChats(generics.ListAPIView):
     pk_user = self.kwargs['pk']
     return Chat.objects.filter(user=pk_user)
   
-class PostChats(generics.CreateAPIView):
-  serializer_class = ChatSerializer
-
 class RetrieveDeleteChat(generics.RetrieveDestroyAPIView):
   queryset = Chat.objects.all()
   serializer_class = ChatSerializer()
@@ -23,5 +18,9 @@ class RetrieveDeleteChat(generics.RetrieveDestroyAPIView):
 
 class ListPostMessage(generics.ListCreateAPIView):
   queryset = Message.objects.all()
-  serializer_class = MessageSerializer()
+  serializer_class = MessageSerializer
+
+  def get_queryset(self):
+    pk_chat = self.kwargs["pk"]
+    return Message.objects.filter(chat=pk_chat)
 
