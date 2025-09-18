@@ -1,16 +1,32 @@
 from authentication.serializers import UsersSerializer
 from authentication.models import User
-from rest_framework import generics
+from rest_framework import generics, status
 from .permissions import UserPermissions
 from rest_framework.authtoken.views import ObtainAuthToken 
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from .serializers import CustomAuthSerializer
+from rest_framework.views import APIView
 
-class PostUser(generics.CreateAPIView):
-  serializer_class = UsersSerializer
+class PostUser(APIView):
   authentication_classes = []
   permission_classes = []
+
+  def post(self, request, *args, **kwargs):
+    serializer = UsersSerializer(data=request.data)
+
+    if serializer.is_valid():
+      serializer.save()
+
+      user = User.objects.get(email=serializer.data["email"])
+      token = Token.objects.create(user=user)
+
+      return Response({
+        'user_id': user.id,
+        'token': token.key
+      }, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RetrieveDeleteUser(generics.RetrieveDestroyAPIView):
   queryset = User.objects.all()
@@ -30,5 +46,4 @@ class CustomAuthToken(ObtainAuthToken):
       return Response({
             'token': token.key,
             'user_id': user.pk,
-            'username': user.username
       })
