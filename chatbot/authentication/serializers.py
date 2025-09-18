@@ -7,8 +7,28 @@ from rest_framework.exceptions import bad_request, AuthenticationFailed, NotFoun
 class UsersSerializer(serializers.ModelSerializer):
   class Meta:
     model = User
-    fields = ["username", "email", "is_active"]
-    extra_kwargs = {'password': {'write_only': True}}
+    fields = ["username", "email", "password"]
+    extra_kwargs = {
+        'email': {
+            'error_messages': {
+                'blank': 'El correo esta en blanco',
+                'required': 'El campo correo no se encuentra',
+            }
+        },
+        'password': {
+            'write_only': True,
+            'error_messages': {
+                'blank': 'La contraseña esta en blanco',
+                'required': 'El campo contraseña no se encuentra',
+            }
+        },
+        'username': {
+            'error_messages': {
+                'blank': 'El nombre de usuario esta en blanco',
+                'required': 'El campo nombre de usuario no se encuentra',
+            }
+        },
+    }
 
 class CustomAuthSerializer(serializers.Serializer):
     email = serializers.EmailField(label=_("Email"))

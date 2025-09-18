@@ -5,7 +5,9 @@ from .managers import CustomUserManager
 
 class User(AbstractBaseUser, PermissionsMixin):
   username = models.CharField(max_length=50)
-  email = models.EmailField(validators=[validators.EmailValidator()], unique=True)
+  email = models.EmailField(validators=[validators.EmailValidator()], unique=True, error_messages={
+    'unique': "Este correo no esta disponible"
+  })
   is_superuser = models.BooleanField(default=False)
   is_admin = models.BooleanField(default=False)
   is_staff = models.BooleanField(default=False)
