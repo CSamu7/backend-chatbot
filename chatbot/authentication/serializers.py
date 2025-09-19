@@ -16,7 +16,6 @@ class UsersSerializer(serializers.ModelSerializer):
             }
         },
         'password': {
-            'write_only': True,
             'error_messages': {
                 'blank': 'La contraseña esta en blanco',
                 'required': 'El campo contraseña no se encuentra',
@@ -29,28 +28,3 @@ class UsersSerializer(serializers.ModelSerializer):
             }
         },
     }
-
-class CustomAuthSerializer(serializers.Serializer):
-    email = serializers.EmailField(label=_("Email"))
-    password = serializers.CharField(label=_("Password"), style={'input_type': 'password'})
-
-    def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-
-        if not email or not password:
-            msg = _('Debes incluir tu correo o contraseña".')
-            raise serializers.ValidationError(msg)
-
-        user = authenticate(email=email, password=password) 
-
-        if user:
-            if not user.is_active:
-                msg = _('Tu cuenta esta desactivada.')
-                raise AuthenticationFailed(msg)
-        else:
-            msg = _('Correo/contraseña incorrectos')
-            raise NotFound(msg)
-
-        attrs['user'] = user
-        return attrs

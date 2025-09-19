@@ -2,16 +2,29 @@ from authentication.serializers import UsersSerializer
 from authentication.models import User
 from rest_framework import generics, status
 from .permissions import UserPermissions
-from rest_framework.authtoken.views import ObtainAuthToken 
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
-from .serializers import CustomAuthSerializer
 from rest_framework.views import APIView
+from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth.hashers import make_password
+from django.shortcuts import get_object_or_404
+import pprint
 
-class PostUser(APIView):
+class Login(APIView):
   authentication_classes = []
   permission_classes = []
 
+  def post(self, request, *args, **kwargs):
+    user = get_object_or_404(User, email=request.data["email"])
+
+    if not user.check_password(request.data["password"]):
+      return Response({"error": "Correo/contraseña incorrecto"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    token, created = Token.objects.get_or_create(user=user)
+
+    return Response({"token": token.key})
+
+class PostUser(APIView):
   def post(self, request, *args, **kwargs):
     serializer = UsersSerializer(data=request.data)
 
@@ -19,6 +32,8 @@ class PostUser(APIView):
       serializer.save()
 
       user = User.objects.get(email=serializer.data["email"])
+      user.set_password(serializer.data["password"])
+
       token = Token.objects.create(user=user)
 
       return Response({
@@ -32,18 +47,4 @@ class RetrieveDeleteUser(generics.RetrieveDestroyAPIView):
   queryset = User.objects.all()
   serializer_class = UsersSerializer
   permission_classes = [UserPermissions]
-
-class CustomAuthToken(ObtainAuthToken):
-  serializer_class = CustomAuthSerializer
-
-  def post(self, request, *args, **kwargs):
-      serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
-      serializer.is_valid(raise_exception=True)
-      user = serializer.validated_data['user']
-      token, created = Token.objects.get_or_create(user=user)
-      
-      return Response({
-            'token': token.key,
-            'user_id': user.pk,
-      })
+  authentication_classes = [TokenAuthentication]
