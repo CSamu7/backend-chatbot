@@ -33,6 +33,7 @@ class PostUser(APIView):
 
       user = User.objects.get(email=serializer.data["email"])
       user.set_password(serializer.data["password"])
+      user.save()
 
       token = Token.objects.create(user=user)
 
