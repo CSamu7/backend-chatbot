@@ -19,7 +19,7 @@ class User(AbstractBaseUser, PermissionsMixin):
   objects = CustomUserManager()
 
   def __str__(self):
-    return self.username
+    return self.email
 
   def has_perm(self, perm, obj=None):
     return True

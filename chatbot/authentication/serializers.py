@@ -16,6 +16,7 @@ class UsersSerializer(serializers.ModelSerializer):
             }
         },
         'password': {
+            'write_only': True,
             'error_messages': {
                 'blank': 'La contraseña esta en blanco',
                 'required': 'El campo contraseña no se encuentra',
