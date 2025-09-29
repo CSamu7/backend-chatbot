@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-chliz6hl1rl7!^)+9+&tavdyv58-!s5kn6v%v+)i2&f4o_8+^x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -82,6 +82,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'chatbot_db',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'PORT': 3306,
+        'HOST': "db-mysql",
         'OPTIONS': {
           "read_default_file": "./database/my.cnf"
         }
