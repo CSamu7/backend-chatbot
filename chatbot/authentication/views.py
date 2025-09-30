@@ -5,7 +5,6 @@ from .permissions import UserPermissions
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth.hashers import make_password
 from django.shortcuts import get_object_or_404
 import pprint
@@ -19,11 +18,9 @@ class Login(APIView):
 
     if not user.check_password(request.data["password"]):
       return Response({"error": "Correo/contraseña incorrecto"}, status=status.HTTP_400_BAD_REQUEST)
-    
-    token, created = Token.objects.get_or_create(user=user)
 
-    response = Response({"id_user": user.id, "token": token.key })
-    return response
+    serializer = UsersSerializer(user)
+    return Response(serializer.data)
 
 class PostUser(APIView):
   def post(self, request, *args, **kwargs):
@@ -45,8 +42,12 @@ class PostUser(APIView):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class RetrieveDeleteUser(generics.RetrieveDestroyAPIView):
+class RetrieveUser(APIView):
   queryset = User.objects.all()
   serializer_class = UsersSerializer
-  permission_classes = [UserPermissions]
-  authentication_classes = [TokenAuthentication]
+
+  def get(self, request, format=None):
+    if not request.user.is_authenticated:
+        return Response({'isAuthenticated': False})
+
+    return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email})
