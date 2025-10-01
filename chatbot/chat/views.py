@@ -1,10 +1,12 @@
 from chat.serializers import ChatSerializer, MessageSerializer
 from chat.models import Chat, Message
 from rest_framework import generics
+from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from .permissions import ChatPermissions
 
 class ListPostChats(generics.ListCreateAPIView):
   serializer_class = ChatSerializer
+  parser_classes = [FormParser,MultiPartParser, JSONParser]
   permission_classes = [ChatPermissions]
 
   def get_queryset(self):
