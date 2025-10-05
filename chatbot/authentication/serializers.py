@@ -7,8 +7,11 @@ from rest_framework.exceptions import bad_request, AuthenticationFailed, NotFoun
 class UsersSerializer(serializers.ModelSerializer):
   class Meta:
     model = User
-    fields = ["username", "email", "password"]
+    fields = ["id", "username", "email", "password"]
     extra_kwargs = {
+        'id': {
+          'read_only': True
+        },
         'email': {
             'error_messages': {
                 'blank': 'El correo esta en blanco',
