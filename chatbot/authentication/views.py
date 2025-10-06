@@ -39,14 +39,18 @@ class Login(APIView):
     return Response(serializer.data)
 
 class PostUser(APIView):
+  authentication_classes = []
+  permission_classes = [AllowAny]
+
   def post(self, request, *args, **kwargs):
     serializer = UsersSerializer(data=request.data)
+    print(request.data)
 
     if serializer.is_valid():
       serializer.save()
 
       user = User.objects.get(email=serializer.data["email"])
-      user.set_password(serializer.data["password"])
+      user.set_password(request.data["password"])
       user.save()
 
       token = Token.objects.create(user=user)

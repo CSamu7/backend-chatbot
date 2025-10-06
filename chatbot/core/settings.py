@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os 
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,10 +85,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'chatbot_db',
+        'NAME': os.getenv("MYSQL_DATABASE"),
         'USER': 'root',
-        'PASSWORD': 'root',
-        'PORT': 3306,
+        'PASSWORD': os.getenv("MYSQL_ROOT_PASSWORD"),
+        'PORT': os.getenv("MYSQL_PORT"),
         'HOST': "db-mysql",
         'OPTIONS': {
           "read_default_file": "./database/my.cnf"
