@@ -5,17 +5,20 @@ from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from rest_framework.response import Response
 from .permissions import MessagePermisions
 
-class ListPostChats(generics.ListCreateAPIView):
+class ListChats(generics.ListAPIView):
   serializer_class = ChatSerializer
-  parser_classes = [FormParser,MultiPartParser, JSONParser]
 
   def get_queryset(self):
     pk_user = self.kwargs['pk']
     return Chat.objects.filter(user=pk_user)
   
+class PostChat(generics.CreateAPIView):
+  parser_classes = [FormParser,MultiPartParser, JSONParser]
+  serializer_class = ChatSerializer
+
 class RetrieveDeleteChat(generics.RetrieveDestroyAPIView):
   queryset = Chat.objects.all()
-  serializer_class = ChatSerializer()
+  serializer_class = ChatSerializer
   
 class ListPostMessage(generics.ListCreateAPIView):
   queryset = Message.objects.all()
