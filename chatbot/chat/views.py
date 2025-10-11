@@ -16,7 +16,7 @@ class PostChat(generics.CreateAPIView):
   parser_classes = [FormParser,MultiPartParser, JSONParser]
   serializer_class = ChatSerializer
 
-class RetrieveDeleteChat(generics.RetrieveDestroyAPIView):
+class RetrieveModifyDeleteChat(generics.RetrieveUpdateDestroyAPIView):
   queryset = Chat.objects.all()
   serializer_class = ChatSerializer
   
