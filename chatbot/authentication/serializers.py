@@ -4,6 +4,11 @@ from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import bad_request, AuthenticationFailed, NotFound
 
+class LoginSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = User
+    fields = ["email", "password"]
+
 class UsersSerializer(serializers.ModelSerializer):
   class Meta:
     model = User

@@ -11,6 +11,7 @@ from rest_framework.permissions import AllowAny
 from django.views.decorators.csrf import csrf_protect
 
 ensure_csrf = method_decorator(ensure_csrf_cookie)
+
 class setCSRFCookie(APIView):
     permission_classes = []
     authentication_classes = []
@@ -24,6 +25,7 @@ class Logout(APIView):
     return Response(status=status.HTTP_205_RESET_CONTENT)
 
 csrf_protect_method = method_decorator(csrf_protect)
+
 class Login(APIView):
   authentication_classes = []
   permission_classes = [AllowAny]
@@ -38,13 +40,13 @@ class Login(APIView):
     serializer = UsersSerializer(user)
     return Response(serializer.data)
 
+
 class PostUser(APIView):
   authentication_classes = []
   permission_classes = [AllowAny]
 
   def post(self, request, *args, **kwargs):
     serializer = UsersSerializer(data=request.data)
-    print(request.data)
 
     if serializer.is_valid():
       serializer.save()
