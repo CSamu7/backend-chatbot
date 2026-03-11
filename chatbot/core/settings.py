@@ -92,6 +92,9 @@ DATABASES = {
         'PORT': os.getenv("MYSQL_PORT"),
         'OPTIONS': {
           "read_default_file": "./database/my.cnf"
+        },
+        "TEST": {
+          "NAME": "test_db"
         }
     }
 }
@@ -148,6 +151,10 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'PAGE_SIZE': 100
+}
+
+SPECTACULAR_SETTINGS = {
+    'SCHEMA_PATH_PREFIX': r'/api/',
 }
 
 CORS_ALLOW_CREDENTIALS = True
