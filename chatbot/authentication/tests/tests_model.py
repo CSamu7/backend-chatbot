@@ -2,7 +2,8 @@ from django.test import TestCase
 from ..models import User
 
 class UserModelTestCase(TestCase):
-  def setUp(self):
+  @classmethod
+  def setUpTestData(cls):
     User.objects.create(username="Samu", email="samuel.pdg@hotmail.com", password="123")
 
   def test_basic_user_when_is_created_is_not_super_user(self):

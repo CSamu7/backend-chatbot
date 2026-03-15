@@ -1,45 +1,59 @@
-from rest_framework.test import APIRequestFactory, APIClient, force_authenticate
+from rest_framework.test import  APIClient, APITestCase
+from rest_framework.reverse import reverse
 from rest_framework import status
 
-from django.test import TestCase
 from ..models import User
-from ..views import RetrieveDeleteUser
-import json
 
-class AuthViewTestCase(TestCase):
-  request_factory = APIRequestFactory()
-  api_client = APIClient()
-  raw_data_user = json.dumps({
-    "email": "inventado@gmail.com",
-    "password": "123"                                                                      
-  })
-    
-  def setUp(self):
+class AuthViewTestCase(APITestCase):
+  @classmethod
+  def setUpTestData(cls):
     User.objects.create_user(username="samu", password="123", email="inventado@gmail.com")
+    cls.client = APIClient()
+    cls.getUserUrl = reverse('whoami')
+
+    cls.loginUrl = reverse('login')
+    cls.logoutUrl = reverse('logout')
 
   def test_return_token_if_db_user_exists(self):
-    response = self.client.post('/api/users/auth', data=self.raw_data_user, content_type="application/json")
-    self.assertIs(response.status_code, status.HTTP_200_OK)
+    body = {"email": "inventado@gmail.com", "password": "123"}
+
+    sut = self.client.post(self.loginUrl, data=body, content_type="application/json")
+    self.assertIs(sut.status_code, status.HTTP_200_OK)
+    self.assertIsNotNone(sut.cookies["sessionid"])
 
   def test_create_new_user(self):
-    data = json.dumps({
+    data = {
       "username": "soynuevo",
       "email": "soynuevo@gmail.com",
       "password": "1234"
-    })
+    }
 
-    response = self.client.post('/api/users/', data=data, content_type="application/json")
-    self.assertIs(response.status_code, status.HTTP_201_CREATED)
+    url = reverse('post-user')
 
+    sut = self.client.post(url, data=data, content_type="application/json")
     user_created = User.objects.get(email="soynuevo@gmail.com")
+
+    self.assertIs(sut.status_code, status.HTTP_201_CREATED)
     self.assertIsNotNone(user_created)
+    self.assertEqual(user_created.email, "soynuevo@gmail.com")
+
+  def test_logout(self):
+    body = {"email": "inventado@gmail.com", "password": "123"}
+
+    response = self.client.post(self.loginUrl, data=body, content_type="application/json")
+    oldCookie = response.cookies.get("csrftoken")
+    self.assertIsNotNone(oldCookie)
+
+    sut = self.client.get(self.logoutUrl, cookie=oldCookie)
+
+    recentCookie = sut.cookies.get("csrftoken")
+
+    self.assertIsNone(recentCookie)
 
   def test_get_details_user_if_user_is_authenticated(self):
     user = User.objects.get(email="inventado@gmail.com")
-    request = self.request_factory.get(f"/api/users/{user.pk}")
-    force_authenticate(request, user=user)
-    view = RetrieveDeleteUser().as_view()
+    sut = self.client.get(self.getUserUrl)
+    self.client.force_login(user)
 
-    response = view(request, pk=user.pk)
-    self.assertIs(response.status_code, status.HTTP_200_OK)
+    self.assertIs(sut.status_code, status.HTTP_200_OK)
   
