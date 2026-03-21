@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import User
-from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
-from rest_framework.exceptions import bad_request, AuthenticationFailed, NotFound
+from django.core import validators
 
 class LoginSerializer(serializers.ModelSerializer):
+  email = serializers.CharField(validators=[validators.EmailValidator()])
+
   class Meta:
     model = User
     fields = ["email", "password"]
@@ -20,20 +21,20 @@ class UsersSerializer(serializers.ModelSerializer):
         'email': {
             'error_messages': {
                 'blank': 'El correo esta en blanco',
-                'required': 'El campo correo no se encuentra',
+                'required': 'El campo correo es requerido',
             }
         },
         'password': {
             'write_only': True,
             'error_messages': {
                 'blank': 'La contraseña esta en blanco',
-                'required': 'El campo contraseña no se encuentra',
+                'required': 'El campo contraseña es requerido',
             }
         },
         'username': {
             'error_messages': {
                 'blank': 'El nombre de usuario esta en blanco',
-                'required': 'El campo nombre de usuario no se encuentra',
+                'required': 'El campo nombre de usuario es requerido',
             }
         },
     }

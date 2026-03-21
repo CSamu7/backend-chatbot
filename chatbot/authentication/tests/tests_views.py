@@ -14,12 +14,17 @@ class AuthViewTestCase(APITestCase):
     cls.loginUrl = reverse('login')
     cls.logoutUrl = reverse('logout')
 
-  def test_return_token_if_db_user_exists(self):
+  def test_login_returns_cookies_if_data_is_correct(self):
     body = {"email": "inventado@gmail.com", "password": "123"}
 
     sut = self.client.post(self.loginUrl, data=body, content_type="application/json")
     self.assertIs(sut.status_code, status.HTTP_200_OK)
     self.assertIsNotNone(sut.cookies["sessionid"])
+
+  def get_401_if_login_is_invalid(self):
+    response = self.client.post(self.loginUrl, data={"email": "inventado@gmail.com", "password": "12345454"})
+
+    self.assertEqual(status.HTTP_401_UNAUTHORIZED, response.status_code)
 
   def test_create_new_user(self):
     data = {
@@ -50,10 +55,12 @@ class AuthViewTestCase(APITestCase):
 
     self.assertIsNone(recentCookie)
 
-  def test_get_details_user_if_user_is_authenticated(self):
+  def test_get_details_user_if_user_is_auth(self):
     user = User.objects.get(email="inventado@gmail.com")
-    sut = self.client.get(self.getUserUrl)
     self.client.force_login(user)
+    sut = self.client.get(self.getUserUrl)
 
     self.assertIs(sut.status_code, status.HTTP_200_OK)
   
+
+

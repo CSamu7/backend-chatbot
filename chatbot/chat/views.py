@@ -1,8 +1,7 @@
 from chat.serializers import ChatSerializer, MessageSerializer
 from chat.models import Chat, Message
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
-from rest_framework.response import Response
 from .permissions import MessagePermisions
 
 class ListChats(generics.ListAPIView):
