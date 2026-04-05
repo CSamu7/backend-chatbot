@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+import os 
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +28,7 @@ SECRET_KEY = 'django-insecure-chliz6hl1rl7!^)+9+&tavdyv58-!s5kn6v%v+)i2&f4o_8+^x
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_spectacular',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -45,7 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-      'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -139,17 +143,33 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
-      'rest_framework.permissions.IsAuthenticated'
+        'rest_framework.permissions.IsAuthenticated'
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
-       'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'PAGE_SIZE': 100
 }
 
+CORS_ALLOW_CREDENTIALS = True
+
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8000"
 ]
 
+CORS_ALLOW_HEADERS = (
+    "x-csrftoken",
+    "content-type"
+)
+
 AUTH_USER_MODEL = "authentication.User"
+
+CSRF_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_HTTPONLY = True
+CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5173", "http://127.0.0.1:8000"
+]
