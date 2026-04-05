@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 import os 
 
@@ -90,11 +90,15 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': os.getenv("MYSQL_ROOT_PASSWORD"),
         'PORT': os.getenv("MYSQL_PORT"),
+        'HOST': 'db-mysql',
         'OPTIONS': {
-          "read_default_file": "./database/my.cnf"
+            'read_default_file': './database/my.cnf'
         }
     }
 }
+
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

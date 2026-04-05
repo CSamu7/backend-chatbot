@@ -1,18 +1,25 @@
-FROM python:3.14.0rc3-slim-trixie
+FROM python:3.11-slim
 
-RUN apt update && apt install -y pkg-config gcc \
-    default-libmysqlclient-dev pkg-config
-RUN pip install --upgrade pip
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-PYTHONUNBUFFERED=1
-
-WORKDIR /app
-
-COPY ./requirements.txt .
-RUN pip install -r requirements.txt
+WORKDIR /app/backend
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3-dev \
+    default-libmysqlclient-dev \
+    pkg-config \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . .
+
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r chatbot/ML/requirements_ml.txt
+
+RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl
+
 EXPOSE 8000
 
-CMD [ "python", "./chatbot/manage.py", "runserver", "0.0.0.0:8000" ]
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+CMD ["./entrypoint.sh"]
