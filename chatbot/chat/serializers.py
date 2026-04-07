@@ -2,16 +2,12 @@ from rest_framework import serializers
 from .models import Chat, Message
 
 class ChatSerializer(serializers.ModelSerializer):
-  user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
-
   class Meta:
     model = Chat
-    fields = ["id", "title", "created_at", "user", "last_genre"]
+    user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
+    fields = ["id", "title", "created_at", "user"]
 
 class MessageSerializer(serializers.ModelSerializer):
-  user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())
-  chat = serializers.PrimaryKeyRelatedField(read_only=True)
-
   class Meta:
     model = Message
     user = serializers.PrimaryKeyRelatedField(read_only=True, default=serializers.CurrentUserDefault())

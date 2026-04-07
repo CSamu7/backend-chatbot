@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import os
+
 from pathlib import Path
 import os 
 
@@ -86,19 +86,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv("MYSQL_DATABASE"),
-        'USER': 'root',
-        'PASSWORD': os.getenv("MYSQL_ROOT_PASSWORD"),
-        'PORT': os.getenv("MYSQL_PORT"),
-        'HOST': 'db-mysql',
         'OPTIONS': {
-            'read_default_file': './database/my.cnf'
+          "read_default_file": "./database/my.cnf"
         }
     }
 }
-
-
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
