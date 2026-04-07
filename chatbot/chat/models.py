@@ -14,8 +14,8 @@ class Chat(models.Model):
     ordering = ["created_at"]
 
 class Message(models.Model):
+  its_from_user = models.BooleanField(default=False)
   chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
-  user = models.ForeignKey(User, on_delete=models.CASCADE)
   text = models.TextField()
   send_at = models.DateTimeField(auto_now_add=True)
   

@@ -1,4 +1,4 @@
-from rest_framework.test import APITestCase, APIClient, APITransactionTestCase
+from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
 from rest_framework.reverse import reverse
 from authentication.models import User
@@ -73,7 +73,6 @@ class AuthChatTestCase(APITestCase):
     self.assertEqual(status.HTTP_401_UNAUTHORIZED, sut.status_code)
 
   @unittest.skip("Not implemented")
-
   def test_prevent_delete_from_another_user(self):
     url = reverse('chat-detail', kwargs={'pk': 3})
     sut = self.client.get(url)
