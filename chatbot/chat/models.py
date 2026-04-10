@@ -5,6 +5,7 @@ class Chat(models.Model):
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   title = models.CharField(max_length=150)
   last_genre = models.CharField(max_length=100, null=True, blank=True)
+  seen_books = models.JSONField(default=list)
   created_at = models.DateTimeField(auto_now_add=True)
 
   def __str__(self):
@@ -17,6 +18,7 @@ class Message(models.Model):
   chat = models.ForeignKey(Chat, on_delete=models.CASCADE)
   user = models.ForeignKey(User, on_delete=models.CASCADE)
   text = models.TextField()
+  libro_ids = models.JSONField(default=list, blank=True)
   send_at = models.DateTimeField(auto_now_add=True)
   
   class Meta:

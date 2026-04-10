@@ -149,6 +149,7 @@ def load_chat_history(chat: Chat):
     contexto_chat["libro_seleccionado_para_info"] = None
     contexto_chat["ultimos_libros_mostrados"] = []
     contexto_chat["ultima_respuesta_bot"] = ""
+    contexto_chat["seen_books"] = chat.seen_books
 
     messages = list(Message.objects.filter(chat=chat).order_by('-send_at')[:10])
     messages.reverse()

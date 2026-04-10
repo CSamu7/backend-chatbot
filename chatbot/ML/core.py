@@ -160,7 +160,7 @@ quick_intentions = {
         "response": "¡Perfecto! ¿Qué más te gustaría saber?"
     },
     "agradecer": {
-        "keywords": ["gracias", "muchas gracias", "graciasw", "gracias!", "gracias.", "gracias?"] ,
+        "keywords": ["gracias", "muchas gracias", "graciasw", "gracias!", "gracias.", "gracias?"],
         "response": "¡De nada! Es un gusto ayudar. ¿Buscamos algo más?"
     },
     "halagos": {
@@ -171,7 +171,6 @@ quick_intentions = {
 
 def normalize_text(text: str) -> str:
     text = text.lower().strip()
-    # Primero remover acentos, LUEGO el regex - así preservamos palabras con acentos
     text = remover_acentos(text)
     text = re.sub(r'[^\w\s]', '', text)
     return text
@@ -181,9 +180,7 @@ def normalize_text(text: str) -> str:
 def predict_intent(user_input: str) -> str:
     texto = normalize_text(user_input)
 
-    # Si el usuario inicia una búsqueda nueva, reseteamos confirmaciones previas
-    search_reset_keywords = ["busco", "buscar", "libros de", "género", "genero", "autor", "titulo", "area", "área"]
-    if any(kw in texto for kw in search_reset_keywords):
+    if any(kw in texto for kw in ["busco", "buscar", "libros de", "género", "genero", "autor", "titulo", "area", "área"]):
         if contexto_chat.get('esperando_confirmacion_sinop', False) or contexto_chat.get('esperando_confirmacion_info', False):
             contexto_chat['esperando_confirmacion_sinop'] = False
             contexto_chat['esperando_confirmacion_info'] = False
@@ -191,15 +188,13 @@ def predict_intent(user_input: str) -> str:
             contexto_chat['libro_seleccionado'] = None
             contexto_chat['libro_seleccionado_para_info'] = None
 
-    # Si el bot acaba de dar la sinopsis completa, activamos este estado
     ultima_respuesta = contexto_chat.get('ultima_respuesta_bot', '').lower()
     if "te ha convencido este libro" in ultima_respuesta:
         if any(kw in texto for kw in ["si", "me interesa", "me gusta", "comprar", "claro", "por supuesto"]):
-            return "libro_aceptado"
+            return "libro_accepted"
         if any(kw in texto for kw in ["no", "no gracias", "luego", "despues", "otro"]):
             return "fin_info"
 
-    # SI ESTAMOS ESPERANDO CONFIRMACIÓN DE SINOPSIS, ESTE ES EL ÚNICO CAMINO
     if contexto_chat.get('esperando_confirmacion_sinop', False):
         if any(word in texto for word in ["si", "sí", "claro", "por favor", "adelante", "sip", "me interesa", "me gusta", "excelente"]):
             return "confirmar_sinopsis_larga"
@@ -207,15 +202,12 @@ def predict_intent(user_input: str) -> str:
             contexto_chat['esperando_confirmacion_sinop'] = False
             return "fin_info"
 
-    # --- NIVEL 1: BÚSQUEDAS PRIORITARIAS (Debe ganar sobre charla social) ---
     if any(kw in texto for kw in ["busco", "buscar", "libros de", "quiero libros", "tienes libros", "hay libros", "tienes de"]):
         return "consulta_avanzada"
 
     if any(kw in texto for kw in ["dame info", "mas info", "detalles", "sinopsis"]):
         return "info_libro"
 
-    # --- NIVEL 2: CORTESÍA Y PERSONALIDAD (Prioridad Alta) ---
-    # Esto detiene la ejecución antes de que el ML se confunda
     if any(kw in texto for kw in ["como estas", "como esta", "que tal", "como va"]):
         return "como_estás"
 
@@ -225,15 +217,12 @@ def predict_intent(user_input: str) -> str:
     if any(kw in texto for kw in ["hablame de ti", "quien eres", "presentate"]):
         return "presentacion"
 
-    # --- NIVEL 3: REGLAS DE NEGOCIO SECUNDARIAS ---
     if any(kw in texto for kw in ["tienes libros", "hay libros", "tienes de", "busco libros", "quiero libros"]) or any(kw in texto for kw in ["paginas", "menos de", "mas de", "maximo", "minimo", "al menos", "no mas de"]):
         return "consulta_avanzada"
 
-    # Preguntas sobre géneros disponibles (prioridad alta antes de búsquedas)
     if any(kw in texto for kw in ["que generos tienes", "que generos hay", "generos disponibles", "que generos ofreces", "que tipos de libros", "cuales son los generos", "que generos manejas", "generos que tienes"]):
         return "generos_disponibles"
 
-    # --- NIVEL 3: RESPUESTA A CONFIRMACIÓN DE SINOPSIS (Prioritario sobre quick_intentions) ---
     if contexto_chat.get("esperando_confirmacion_info", False):
         if any(kw in texto for kw in ["si", "sí", "claro", "por supuesto", "adelante", "ok", "vale"]):
             return "info_libro"
@@ -241,37 +230,28 @@ def predict_intent(user_input: str) -> str:
             contexto_chat['esperando_confirmacion_info'] = False
             return "fin_info"
 
-    # --- NIVEL 4: RESPUESTA A CONFIRMACIÓN DE SINOPSIS (Prioritario sobre quick_intentions) ---
-    if contexto_chat.get("esperando_confirmacion_info", False):
-        if any(kw in texto for kw in ["si", "sí", "claro", "por supuesto", "adelante", "ok", "vale"]):
-            return "info_libro"
-        if any(kw in texto for kw in ["no", "nada", "ninguno", "no gracias", "no quiero"]):
-            contexto_chat['esperando_confirmacion_info'] = False
-            return "fin_info"
-
-    # --- NIVEL 4: INTENCIONES RÁPIDAS (Quick Intentions) ---
     for key, data in quick_intentions.items():
         if any(re.search(rf"\b{re.escape(remover_acentos(kw))}\b", texto) for kw in data["keywords"]):
             return key
 
-    # --- NIVEL 5: EL MODELO DE ML (Solo si lo anterior falla) ---
     if ml_model_loaded:
         try:
             X = vectorizer.transform([user_input])
             probs = clf.predict_proba(X)[0]
-            if max(probs) > 0.7: # Subimos el umbral de confianza
+            if max(probs) > 0.7:
                 return clf.predict(X)[0]
         except:
             pass
 
-    # --- NIVEL 5: BÚSQUEDA POR KEYWORDS ---
     for intent_name, kws in intents.items():
         for kw in kws:
             if remover_acentos(kw) in texto:
                 return intent_name
 
-    # --- NIVEL 6: DETECCIÓN DE TÍTULOS (Si parece un título después de búsqueda) ---
-    non_title_keywords = ["que", "como", "donde", "cuando", "por que", "quien", "gracias", "adios", "hasta", "nos vemos", "chao", "bye"]
+    if any(kw in texto for kw in ["recomienda", "recomendame", "sugiere", "recomiéndame"]):
+        return "recomendacion"
+
+    non_title_keywords = ["que", "como", "donde", "cuando", "por que", "quien", "gracias", "adios", "hasta", "nos vemos", "chao", "bye", "recomienda", "sugiere", "recomendame"]
     if 1 <= len(user_input.strip()) <= 100 and not any(kw in texto for kw in non_title_keywords):
         if contexto_chat.get("ultimos_libros_encontrados"):
             for libro in contexto_chat.get("ultimos_libros_encontrados", []):
@@ -284,37 +264,17 @@ def predict_intent(user_input: str) -> str:
 
     return "default"
 
-# --- FUNCIONES AUXILIARES PARA REFACTORIZACIÓN ---
-
-
-
-
-
-
-
-
-
-
-
-
-
 # --- GENERACIÓN DE RESPUESTAS ---
 
 def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
-    """
-    Función universal que genera respuestas.
-    Compatible con consola (request=None) y con Django (request con session).
-    """
     if exclude_ids is None:
-        exclude_ids = []
+        exclude_ids = contexto_chat.get('seen_books', []) or []
     
-    # Actualizar intención en contexto para recomendaciones futuras
     try:
         marcar_intension(intent)
     except Exception:
         pass
     
-    # Manejar confirmación de sí/no para sinopsis
     feedback_post = contexto_chat.get("estado") == "ESPERANDO_FEEDBACK_POST_SINOP" or contexto_chat.get("context_state") == "ESPERANDO_FEEDBACK_POST_SINOP"
     if intent == "afirmacion" and feedback_post:
         contexto_chat["estado"] = "NORMAL"
@@ -347,26 +307,22 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
             return result
         return "Entendido!"
     
-    # Manejar recomendaciones
     if intent == "recomendacion":
         return handle_recommendation(user_input, request, exclude_ids)
     
-    # Manejar búsquedas
     if intent in ["consulta_avanzada", "buscar_titulo", "buscar_autor", "buscar_genero", "buscar_area"]:
         contexto_chat["esperando_confirmacion_sinop"] = False
         contexto_chat["esperando_confirmacion_info"] = False
         result = handle_search(intent, user_input, request, exclude_ids)
         if result:
-            contexto_chat['ultima_respuesta_bot'] = result  # Guardar última respuesta
+            contexto_chat['ultima_respuesta_bot'] = result
             return result
     
-    # Manejar más opciones
     if intent == "mas_opciones":
         result = handle_mas_opciones()
         contexto_chat['ultima_respuesta_bot'] = result
         return result
     
-    # 1. Caso: confirmación de sinopsis larga
     if intent == "confirmar_sinopsis_larga":
         libro = contexto_chat.get('libro_actual')
         if libro:
@@ -383,10 +339,11 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         contexto_chat['ultima_respuesta_bot'] = result
         return result
 
-    # 2. Caso: info de libro (ficha + resumen corto) - Integrado inline
+    # --- CORRECCIÓN AQUÍ PARA 'libros_previos' ---
     if intent == "info_libro":
         ultimos_libros = contexto_chat.get("ultimos_libros_encontrados", [])
-        libros_previos = []
+        libros_previos = [] # Se inicializa siempre vacía para evitar el Error
+        
         if request and hasattr(request, 'session'):
             libros_previos = request.session.get('libros_vistos', []) or []
 
@@ -420,12 +377,9 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
                     supa_res = supabase.table('libros').select('*').eq('id_libro', book_id).single().execute()
                     if supa_res and getattr(supa_res, 'data', None):
                         libro = supa_res.data
-                        
-                        # Paso 1: ficha corta + resumen corto + pregunta de confirmación
                         contexto_chat['libro_actual'] = libro
                         contexto_chat['esperando_confirmacion_sinop'] = True
                         contexto_chat['esperando_confirmacion_info'] = False
-
                         result = construir_info_resumida(libro)
                         result += "\n\nResumen: " + (libro.get('info') or "No disponible")
                         result += "\n\nDeseas conocer la sinopsis completa? (si/no)"
@@ -445,13 +399,11 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         contexto_chat['ultima_respuesta_bot'] = result
         return result
     
-    # Manejar libro aceptado (nuevo estado)
     if intent == "libro_aceptado":
         result = "¡Excelente elección! Me alegra que te haya gustado. ¿Quieres que busquemos algo más o prefieres otra recomendación?"
         contexto_chat['ultima_respuesta_bot'] = result
         return result
     
-    # Manejar libro seleccionado
     if intent == "mostrar_libro_seleccionado":
         libro = contexto_chat.get("libro_seleccionado")
         if libro:
@@ -467,7 +419,6 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         contexto_chat['ultima_respuesta_bot'] = result
         return result
     
-    # Manejar fin de info
     if intent == "fin_info":
         contexto_chat["esperando_confirmacion_info"] = False
         contexto_chat["esperando_confirmacion_sinop"] = False
@@ -477,19 +428,16 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         contexto_chat['ultima_respuesta_bot'] = result
         return result
 
-    # Manejar continuar búsqueda explícito
     if intent == "continuar_busqueda":
         result = "Perfecto, dime qué tipo de libros te gustaría explorar ahora (género, autor, área, etc.)."
         contexto_chat['ultima_respuesta_bot'] = result
         return result
 
-    # Manejar feedback
     feedback_result = handle_feedback(intent)
     if feedback_result:
         contexto_chat['ultima_respuesta_bot'] = feedback_result
         return feedback_result
     
-    # Manejar géneros disponibles
     if intent == "generos_disponibles":
         contexto_chat["esperando_confirmacion_sinop"] = False
         contexto_chat["esperando_confirmacion_info"] = False
@@ -502,7 +450,6 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
                     gen = libro.get('gen', '').strip()
                     if gen:
                         generos.add(gen)
-                
                 generos_ordenados = sorted(list(generos))
                 generos_texto = ", ".join(generos_ordenados)
                 result = f"Estos son todos los géneros disponibles en mi colección:\n\n{generos_texto}\n\n¿Te gustaría buscar libros de algún género específico?"
@@ -510,21 +457,10 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
                 return result
         except Exception as e:
             print(f"Error al obtener géneros: {e}")
-            # Fallback a respuesta estática
             pass
     
-    # Respuesta por defecto
     res_list = responses.get(intent, responses["default"])
     respuesta_base = random.choice(res_list)
     registrar_en_historial("bot", respuesta_base)
     contexto_chat['ultima_respuesta_bot'] = respuesta_base
     return respuesta_base
-
-
-
-
-
-
-
-
-

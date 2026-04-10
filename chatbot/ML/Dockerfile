@@ -1,21 +1,25 @@
-FROM python:3.11
-WORKDIR /app
+FROM python:3.11-slim
 
+WORKDIR /app/backend
 RUN apt-get update && apt-get install -y \
     build-essential \
-    curl \
+    python3-dev \
+    default-libmysqlclient-dev \
+    pkg-config \
+    wget \
     && rm -rf /var/lib/apt/lists/*
-
-COPY requirements_ml.txt .
-
-RUN pip install --no-cache-dir -r requirements_ml.txt
-
-RUN python -m spacy download es_core_news_sm
 
 COPY . .
 
-RUN echo 'from flask import Flask\napp = Flask(__name__)\n\n@app.route("/health")\ndef health():\n    return {"status": "healthy"}\n\nif __name__ == "__main__":\n    app.run(host="0.0.0.0", port=5000)' > health_server.py
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r ./chatbot/ML/requirements.txt
+RUN pip install --no-cache-dir -r ./chatbot/ML/requirements_ml.txt
 
-EXPOSE 5000
+RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl
 
-CMD ["python", "health_server.py"]
+COPY ./chatbot/ML/entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
+
+EXPOSE 8000
+
+CMD ["./chatbot/ML/entrypoint.sh"]

@@ -5,12 +5,12 @@ contexto_chat = {
     "ultimos_libros_encontrados": [],
     "ultima_intension": None,
     "esperando_respuesta": False,
-    "context_state": "IDLE",  # IDLE, AWAITING_COURTESY, INFO_GIVEN
+    "context_state": "IDLE",
     "estado": "NORMAL",
     "lista_pendiente": [],
     "tipo_lista": "",
     "current_genre": None,
-    "historial_conversacion": []  # Lista de {role: "usuario"|"bot", contenido: str}
+    "historial_conversacion": [] 
 }
 
 

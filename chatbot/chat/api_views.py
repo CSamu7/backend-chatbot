@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
-from ML.chatbot import predict_intent, get_response
+from ML.chatbot import predict_intent, get_response, load_chat_history
+from ML.context import contexto_chat
 from authentication.models import User
 from chat.models import Chat, Message
 from chat.serializers import ChatSerializer, MessageSerializer
@@ -89,31 +90,48 @@ def chatbot_api(request):
                 status=HTTP_400_BAD_REQUEST
             )
         
-        # Detectar intención
-        intent = predict_intent(query)
-        
-        # Obtener respuesta
-        response = get_response(intent, query)
-        
-        # Guardar en BD del docker si se proporciona email
+       
+        chat = None
+        user = None
         if email:
             try:
                 user = User.objects.get(email=email)
                 chat = Chat.objects.filter(user=user).order_by('-created_at').first()
                 if not chat:
                     chat = Chat.objects.create(user=user, title='Chat via API')
-
-                # Guardar mensajes
-                Message.objects.create(chat=chat, user=user, text=f"Usuario: {query}")
-                Message.objects.create(chat=chat, user=user, text=f"Bot: {response}")
-
-                # Actualizar último género identificado
-                genre = infer_genre_from_query(query)
-                if genre:
-                    chat.last_genre = genre
-                    chat.save(update_fields=['last_genre'])
+                
+                
+                load_chat_history(chat)
+                request.chat = chat
             except User.DoesNotExist:
                 pass
+        
+    
+        intent = predict_intent(query)
+        
+    
+        response = get_response(intent, query, request=request)
+        
+        
+        if chat and user:
+            # Guardar mensajes
+            Message.objects.create(chat=chat, user=user, text=f"Usuario: {query}")
+            Message.objects.create(
+                chat=chat,
+                user=user,
+                text=f"Bot: {response}",
+                libro_ids=contexto_chat.get('ultimos_libros_mostrados', []) or []
+            )
+
+            # Guardar el género (primero intenta el que se detectó en handlers, luego el de la query actual)
+            genre = contexto_chat.get('ultimo_genero_exitoso') or infer_genre_from_query(query)
+            if genre:
+                chat.last_genre = genre
+           
+            seen_books = contexto_chat.get('seen_books', [])
+            chat.seen_books = seen_books
+            chat.save(update_fields=['last_genre', 'seen_books'])
+
         
         return Response({
             "query": query,
