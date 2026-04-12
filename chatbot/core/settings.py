@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 import os 
 
@@ -95,9 +95,13 @@ DATABASES = {
         },
         "TEST": {
           "NAME": "test_db"
-        }
+        },
+        'HOST': 'db-mysql',
     }
 }
+
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

@@ -1,0 +1,23 @@
+### Pruebas API Chatbot
+Base: http://localhost:8000/api/chatbot/
+
+# 1) Info
+GET http://localhost:8000/api/chatbot/info/
+
+# 2) Genero
+POST http://localhost:8000/api/chatbot/
+Content-Type: application/json
+
+{
+  "query": "Dame libros de terror"
+}
+
+# 3) Genero + maximo paginas
+POST http://localhost:8000/api/chatbot/
+Content-Type: application/json
+
+{
+  "query": "Busco libros de terror de menos de 300 paginas"
+}
+
+
