@@ -18,7 +18,7 @@ except RuntimeError:
 from chat.models import Chat, Message
 from authentication.models import User
 
-# Cargar modelo spaCy
+# Cargar modelo spacy
 import spacy
 
 try:

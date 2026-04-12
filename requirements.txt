@@ -5,3 +5,8 @@ httpx==0.24.1
 supabase==2.1.1
 gotrue==2.8.0
 django==4.2.5
+djangorestframework==3.15.0
+django-cors-headers==4.0.0
+mysqlclient==2.2.8
+python-dotenv==1.0.0
+
