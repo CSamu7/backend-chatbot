@@ -12,8 +12,6 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r ./chatbot/ML/requirements.txt
-RUN pip install --no-cache-dir -r ./chatbot/ML/requirements_ml.txt
 
 RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl
 

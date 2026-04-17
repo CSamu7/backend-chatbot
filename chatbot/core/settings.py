@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_spectacular',
+    'django_extensions',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -96,7 +97,6 @@ DATABASES = {
         "TEST": {
           "NAME": "test_db"
         },
-        'HOST': 'db-mysql',
     }
 }
 

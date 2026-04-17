@@ -4,12 +4,9 @@ from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from .permissions import MessagePermisions
 from rest_framework.views import APIView, Response
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
 from ML.chatbot import get_response, predict_intent
 from ML.config import supabase
-from authentication.models import User
 
 class ListChats(generics.ListAPIView):
   serializer_class = ChatSerializer
@@ -37,7 +34,7 @@ class ListMessage(generics.ListAPIView):
     return Message.objects.filter(chat=pk_chat) 
 
 class PostMessage(APIView):
-  def create(self, request):
+  def post(self, request, pk):
     #validate message
     serializer = MessageSerializer(data=request.data)
 
@@ -47,41 +44,11 @@ class PostMessage(APIView):
     retries = 0
 
     while retries < 3:
-      # enviar al chatbot con el mensaje
-      # calling chatbot
-
-      # if request is successful, then break.
-      retries += 1
-
-
-    if retries >= 3:
-    #after 3 retries and no message sent, return 500.
-      return Response({"error": "El chatbot no se encuentra disponible"}, status=500)
-
-    user_msg = Message.objects.create(serializer.data)
-    chatbot_msg = Message.objects.create(serializer.data)
-    #save both messages in the database.
-
-    user_msg.save()
-    chatbot_msg.save()
-    #return chatbot message.
-
-    return Response({"msg": chatbot_msg})
-class ChatbotAPIView(APIView):
-    """API para interactuar con el chatbot ML"""
-    def post(self, request):
-        email = request.data.get('email')
-        text = request.data.get('text')
-        if not email or not text:
-            return Response({'error': 'Faltan parámetros'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # 1. Detectar si el usuario pide info del libro actual
-        text_lower = text.lower()
-        if "dame info" in text_lower or "más info" in text_lower or "informacion" in text_lower or "sinopsis" in text_lower:
+  # 1. Detectar si el usuario pide info del libro actual
+      text_lower = serializer.validated_data["text"].lower()
+      
+      #Demasiada información...
+      if "dame info" in text_lower or "más info" in text_lower or "informacion" in text_lower or "sinopsis" in text_lower:
             libro_id = request.session.get('ultimo_libro_id')
             if libro_id:
                 try:
@@ -95,7 +62,24 @@ class ChatbotAPIView(APIView):
                 return Response({'respuesta': "No sé de qué libro hablamos. ¿Puedes decirme el título?"})
         
         # 2. Si es una búsqueda normal
-        intent = predict_intent(text)
-        respuesta = get_response(intent, text, request, user)
-        return Response({'respuesta': respuesta})
+      intent = predict_intent(serializer.validated_data["text"])
+      #def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
+      chatbot_answer = get_response(intent, serializer.validated_data["text"], request, [])
 
+      if chatbot_answer is not None: 
+         break
+
+      retries += 1
+
+    if retries >= 3:
+    #after 3 retries and no message sent, return 500.
+      return Response({"error": "El chatbot no se encuentra disponible"}, status=500)
+
+    chat = Chat.objects.get(pk = pk)
+    user_msg = Message(its_from_user = True, chat = chat, text = serializer.validated_data["text"], libro_ids = [])
+    chatbot_msg = Message(chat = chat, text = chatbot_answer, libro_ids = [])
+
+    user_msg.save()
+    chatbot_msg.save()
+
+    return Response({"msg": chatbot_answer})

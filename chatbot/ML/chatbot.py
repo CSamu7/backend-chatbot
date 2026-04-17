@@ -1,11 +1,8 @@
 ﻿import sys
-import re
-import unicodedata
-import secrets
 from .core import predict_intent, get_response
-from .utils import formatear_resultados, extraer_termino_busqueda, remover_acentos
+from .utils import remover_acentos
 from .context import (
-    contexto_chat, actualizar_contexto_busqueda, obtener_info_libro, registrar_en_historial
+    contexto_chat, registrar_en_historial
 )
 from .search import buscar_libro_por_titulo, extraer_criterios_avanzados
 from .config import Chat, Message, User
