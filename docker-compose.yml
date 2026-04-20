@@ -1,0 +1,65 @@
+services:
+  db-mysql:
+    image: mysql:oraclelinux9
+    container_name: "chatbot-db"
+    restart: always
+    environment:
+      MYSQL_DATABASE: chatbot_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    networks:
+      - app-net
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysql", "--user=root", "--password=root", "-e", "SELECT 1"]
+      interval: 3s
+      retries: 5
+      start_period: 30s
+  backend:
+    container_name: "chatbot-backend"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: chatbot:ml
+    env_file: ./.env
+    ports:
+      - 8000:8000
+    networks:
+      - app-net
+    depends_on:
+      db-mysql:
+        condition: service_healthy
+  #frontend:
+  #  container_name: "chatbot-frontend"
+  #  stdin_open: true
+  #  command: npm run dev
+  #  build: ./frontend
+  #  volumes:
+  #    - ./frontend:/usr/src/app
+  #    - /usr/src/app/node_modules
+  #  ports:
+  #    - 5173:5173
+  #  networks:
+  #    - app-net
+  #  environment:
+  #    - NODE_ENV=development
+  #    - NODE_ENV=development
+  #  depends_on:
+  #    - backend
+  #reverse_proxy:
+  #  image: "nginx:stable-perl"
+  #  restart: unless-stopped
+  #  ports:
+  #    - "80:80"
+  #    - "81:81"
+  #    - "443:443"
+  #  volumes:
+  #    - ./data:/data
+  #    - ./letsencrypt:/etc/letsencrypt
+volumes:
+  mysql_data:
+networks:
+  app-net:
+    name: "nat"
