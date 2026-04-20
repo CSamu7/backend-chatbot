@@ -1,5 +1,6 @@
 from chat.serializers import ChatSerializer, MessageSerializer
 from chat.models import Chat, Message
+from authentication.models import User
 from rest_framework import generics
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from .permissions import MessagePermisions
@@ -8,16 +9,22 @@ from rest_framework.response import Response
 from ML.chatbot import get_response, predict_intent
 from ML.config import supabase
 
-class ListChats(generics.ListAPIView):
+class ListPostChats(generics.ListCreateAPIView):
   serializer_class = ChatSerializer
 
   def get_queryset(self):
     pk_user = self.kwargs['pk']
     return Chat.objects.filter(user=pk_user)
   
-class PostChat(generics.CreateAPIView):
-  parser_classes = [FormParser,MultiPartParser, JSONParser]
-  serializer_class = ChatSerializer
+  def create(self, request, *args, **kwargs):
+    pk_user = self.kwargs["pk"]
+    user = User.objects.get(pk = pk_user)
+
+    Chat.objects.create(user=user, title=request.data["title"], last_genre = "", seen_books = [])
+
+    return Response(status=204)
+  
+
 
 class RetrieveModifyDeleteChat(generics.RetrieveUpdateDestroyAPIView):
   queryset = Chat.objects.all()
