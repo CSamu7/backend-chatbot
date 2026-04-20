@@ -91,6 +91,7 @@ DATABASES = {
         'USER': 'root',
         'PASSWORD': os.getenv("MYSQL_ROOT_PASSWORD"),
         'PORT': os.getenv("MYSQL_PORT"),
+        'HOST': 'db-mysql',
         'OPTIONS': {
           "read_default_file": "./database/my.cnf"
         },

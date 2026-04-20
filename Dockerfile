@@ -15,6 +15,8 @@ RUN pip install -r requirements.txt
 RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.7.0/es_core_news_md-3.7.0-py3-none-any.whl
 
 COPY . .
+RUN chmod 755 ./entrypoint.sh
 EXPOSE 8000
 
-CMD [ "python", "./chatbot/manage.py", "runserver", "0.0.0.0:8000" ]
+CMD [ "./entrypoint.sh" ]
+
