@@ -1,5 +1,5 @@
 #!/bin/sh
 #Migraciones de la base de datos
 python ./chatbot/manage.py migrate 
-#Ejecutar server
-python ./chatbot/manage.py runserver 
+
+python ./chatbot/manage.py createsuperuser --email test@prueba.com --username samu --noinput
