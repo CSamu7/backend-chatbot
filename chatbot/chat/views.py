@@ -54,20 +54,6 @@ class PostMessage(APIView):
   # 1. Detectar si el usuario pide info del libro actual
       text_lower = serializer.validated_data["text"].lower()
       
-      #Demasiada información...
-      if "dame info" in text_lower or "más info" in text_lower or "informacion" in text_lower or "sinopsis" in text_lower:
-            libro_id = request.session.get('ultimo_libro_id')
-            if libro_id:
-                try:
-                    res = supabase.table("libros").select("*").eq("id", libro_id).single().execute()
-                    libro = res.data
-                    respuesta = f"**{libro['titulo']}** ({libro.get('año_publicacion', 'Desconocido')})\n\n**Sinopsis:** {libro.get('info', 'No hay resumen disponible.')}\n\n¿Te gustaría buscar algo más?"
-                    return Response({'respuesta': respuesta})
-                except Exception as e:
-                    return Response({'respuesta': 'Lo siento, no pude obtener la información de ese libro.'})
-            else:
-                return Response({'respuesta': "No sé de qué libro hablamos. ¿Puedes decirme el título?"})
-        
         # 2. Si es una búsqueda normal
       intent = predict_intent(serializer.validated_data["text"])
       #def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
