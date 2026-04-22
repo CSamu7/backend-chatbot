@@ -339,7 +339,7 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         contexto_chat['ultima_respuesta_bot'] = result
         return result
 
-    # --- CORRECCIÓN AQUÍ PARA 'libros_previos' ---
+    
     if intent == "info_libro":
         ultimos_libros = contexto_chat.get("ultimos_libros_encontrados", [])
         libros_previos = [] # Se inicializa siempre vacía para evitar el Error

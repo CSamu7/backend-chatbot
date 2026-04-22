@@ -175,7 +175,8 @@ def create_new_chat(user: User, get_input):
 
 def guardar_mensaje_en_bd(chat: Chat, user: User, rol: str, contenido: str) -> Message:
     contenido_seguro = sanitize_text(contenido)
-    return Message.objects.create(chat=chat, user=user, text=contenido_seguro)
+    its_from_user = (rol.lower() == "usuario")
+    return Message.objects.create(chat=chat, its_from_user=its_from_user, text=contenido_seguro)
 
 def chatbot(user_email=None, get_input=None):
     if get_input is None:
