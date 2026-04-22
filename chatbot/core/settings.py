@@ -87,19 +87,23 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv("MYSQL_DATABASE"),
-        'USER': 'root',
-        'PASSWORD': os.getenv("MYSQL_PASSWORD"),
-        'PORT': os.getenv("MYSQL_PORT"),
-        'HOST': 'db-mysql',
+        'NAME': os.getenv("MYSQL_DATABASE", "chatbot_db"),
+        'USER': os.getenv("MYSQL_USER", "root"),
+        'PASSWORD': os.getenv("MYSQL_PASSWORD", "root"),
+        'PORT': os.getenv("MYSQL_PORT", "3306"),
+        'HOST': os.getenv("MYSQL_HOST", "localhost"),
         'OPTIONS': {
-          "read_default_file": "./database/my.cnf"
+          "read_default_file": "./database/my.cnf" if os.path.exists("./database/my.cnf") else None
         },
         "TEST": {
           "NAME": "test_db"
         },
     }
 }
+
+# Remover None del OPTIONS si el archivo no existe
+if DATABASES['default']['OPTIONS']['read_default_file'] is None:
+    del DATABASES['default']['OPTIONS']['read_default_file']
 
 
 
