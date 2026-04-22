@@ -166,7 +166,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:8000"
+    "http://127.0.0.1:8000",
+    "http://0.0.0.0:5173",
+    "http://localhost:5173",
 ]
 
 CORS_ALLOW_HEADERS = (
@@ -176,8 +178,13 @@ CORS_ALLOW_HEADERS = (
 
 AUTH_USER_MODEL = "authentication.User"
 
+CSRF_TRUSTED_ORIGINS = [
+  "http://127.0.0.1:5173", 
+  "http://127.0.0.1:8000", 
+  "http://0.0.0.0:5173",
+  "http://localhost:5173",
+]
+
 CSRF_COOKIE_SAMESITE = 'Strict'
 SESSION_COOKIE_SAMESITE = 'Strict'
-SESSION_COOKIE_HTTPONLY = True
-CSRF_TRUSTED_ORIGINS = ["http://127.0.0.1:5173", "http://127.0.0.1:8000"
-]
+SESSION_COOKIE_HTTPONLY = False

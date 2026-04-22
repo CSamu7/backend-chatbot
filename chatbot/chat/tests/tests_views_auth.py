@@ -10,7 +10,6 @@ class AuthChatTestCase(APITestCase):
   def setUpTestData(cls):
     cls.user = User.objects.create_user(username="samu", password="123", email="test@gmail.com")
     user2 = User.objects.create_user(username="test", password="456", email="there@gmail.com")
-    #For some reason its overwritten.
     cls.client = APIClient()
 
     cls.list_chat_url = reverse('chat-list', kwargs={'pk': cls.user.pk})
