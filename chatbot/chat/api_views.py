@@ -107,7 +107,7 @@ def chatbot_api(request):
                 pass
         
     
-        intent = predict_intent(query)
+        intent = predict_intent(query, request.session)
         
     
         response = get_response(intent, query, request=request)

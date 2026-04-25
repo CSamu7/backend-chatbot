@@ -14,10 +14,26 @@ from .context import (
     registrar_en_historial, marcar_intension, obtener_ultima_intension, limpieza_contextual
 )
 from .handlers import (
-    handle_recommendation, handle_search, handle_info_libro,
+    handle_confirmacion_cortesia, handle_recommendation, handle_saludo_social, handle_search, handle_info_libro,
     handle_mas_opciones, handle_feedback
 )
 from .builders import construir_info_resumida, construir_respuesta_info, construir_respuesta
+
+
+
+# --- LISTAS PARA PAGINACIÓN ---
+GENEROS_DISPONIBLES = [
+    "Romance", "Misterio", "Ciencia Ficción", "Fantasía", "Terror", "Histórica", "Drama", "Policial", "Aventura", "Biografía",
+    "Autoayuda", "Infantil", "Juvenil", "Poesía", "Filosofía", "Psicología", "Historia", "Ciencias", "Matemáticas", "Medicina",
+    "Derecho", "Economía", "Política", "Religión", "Arte", "Música", "Cine", "Teatro", "Deportes", "Viajes"
+]
+
+AUTORES_POPULARES = [
+    "Gabriel García Márquez", "Mario Vargas Llosa", "Isabel Allende", "Stephen King", "Julio Cortázar", "Jorge Luis Borges", "Pablo Neruda", "Octavio Paz",
+    "Carlos Fuentes", "Juan Rulfo", "Ernest Hemingway", "William Faulkner", "F. Scott Fitzgerald", "John Steinbeck", "Mark Twain", "Edgar Allan Poe",
+    "H.P. Lovecraft", "Bram Stoker", "Mary Shelley", "Jane Austen", "Charlotte Brontë", "Emily Brontë", "George Orwell", "Aldous Huxley",
+    "Ray Bradbury", "Isaac Asimov", "Arthur C. Clarke", "Philip K. Dick", "Frank Herbert", "J.R.R. Tolkien"
+]
 
 # --- CONFIGURACIÓN DE RESPUESTAS ---
 intents = {
@@ -35,7 +51,7 @@ intents = {
     "estadisticas": ["cuantos libros tienes"],
     "generos_disponibles": ["que generos disponibles", "que generos tienes", "que tipos de libros", "que categorias", "que generos hay", "muestrame los generos", "dime los generos", "cuales son los generos"],
     "autores_populares": ["autores populares"],
-    "mas_opciones": ["dime mas", "que mas tienes", "otras opciones", "muestrame mas"],
+    "mas_opciones": ["dime mas", "que mas tienes", "otras opciones", "muestrame mas", "dame otros 10"],
     "cambiar_busqueda": ["tienes algo diferente", "no me gusto eso", "otra cosa", "no es lo que busco", "algo diferente"],
     "feedback_negativo": ["no me interesa", "aburrido"],
     "explicacion": ["que quieres decir", "no entendi", "puedes explicar", "como funciona", "que significa eso"],
@@ -84,9 +100,12 @@ responses = {
         "¡Hasta pronto! Que tengas un buen día."
     ],
     "como_estás": [
-        "¡Estoy excelente, José! Gracias por preguntar. ¿Y tú, qué tal estás?",
+        "¡Estoy excelente, Gracias por preguntar. ¿Y tú, qué tal estás?",
         "¡Muy bien! Con muchas ganas de recomendarte libros hoy. ¿Cómo va tu día?",
-        "Todo de maravilla por aquí, listo para ayudarte. ¿Tú cómo te encuentras?"
+        "Todo de maravilla por aquí, listo para ayudarte. ¿Tú cómo te encuentras?",
+        "¡Genial! Mi base de datos está llena de libros increíbles. ¿Y tú cómo estás?",
+        "¡Excelente! Preparado para ayudarte a encontrar tu próximo libro favorito. ¿Cómo te sientes hoy?",
+        "¡De maravilla! Tengo recomendaciones para todos los gustos. ¿Tú cómo te encuentras?"
     ],
     "estado_bot": [
         "Soy Bookbot. Mi trabajo es ayudarte a encontrar el libro perfecto en nuestra base de datos.",
@@ -105,12 +124,10 @@ responses = {
         "Mi colección incluye libros de literatura, ciencia, historia y muchos otros temas."
     ],
     "generos_disponibles": [
-        "Tengo libros de romance, misterio, ciencia ficción, fantasía, terror, histórica, drama, policial y muchos más.",
-        "Los géneros disponibles incluyen: romance, misterio, ciencia ficción, fantasía, terror, histórica, drama, policial, entre otros."
+        "Estos son géneros disponibles en mi biblioteca:\n\n- Romance\n- Misterio\n- Ciencia Ficción\n- Fantasía\n- Terror\n- Histórica\n- Drama\n- Policial\n- Aventura\n- Biografía\n- Autoayuda\n- Infantil\n- Juvenil\n- Poesía\n- Filosofía\n- Psicología\n- Historia\n- Ciencias\n- Matemáticas\n- Medicina\n- Derecho\n- Economía\n- Política\n- Religión\n- Arte\n- Música\n- Cine\n- Teatro\n- Deportes\n- Viajes\n\n¿Quieres ver otros 10? (di 'dame otros 10')"
     ],
     "autores_populares": [
-        "Tengo libros de autores como Gabriel García Márquez, Mario Vargas Llosa, Isabel Allende, Stephen King, Julio Cortázar y muchos más.",
-        "Mi colección incluye obras de autores clásicos y contemporáneos de habla hispana y universal."
+        "Estos son autores disponibles en mi biblioteca:\n\n- Gabriel García Márquez\n- Mario Vargas Llosa\n- Isabel Allende\n- Stephen King\n- Julio Cortázar\n- Jorge Luis Borges\n- Pablo Neruda\n- Octavio Paz\n- Carlos Fuentes\n- Juan Rulfo\n- Ernest Hemingway\n- William Faulkner\n- F. Scott Fitzgerald\n- John Steinbeck\n- Mark Twain\n- Edgar Allan Poe\n- H.P. Lovecraft\n- Bram Stoker\n- Mary Shelley\n- Jane Austen\n- Charlotte Brontë\n- Emily Brontë\n- George Orwell\n- Aldous Huxley\n- Ray Bradbury\n- Isaac Asimov\n- Arthur C. Clarke\n- Philip K. Dick\n- Frank Herbert\n- J.R.R. Tolkien\n\n¿Quieres ver otros 10? (di 'dame otros 10')"
     ],
     "mas_opciones": [
         "Aquí tienes más opciones de libros que podrían interesarte.",
@@ -135,6 +152,14 @@ responses = {
         "¡Excelente! Tengo más libros del mismo estilo si te interesa.",
         "¡Genial! ¿Te gustaría ver más opciones similares?"
     ],
+    "respuesta_como_estas": [
+        "¡Me alegra oír eso! ¿En qué puedo ayudarte con libros hoy?",
+        "¡Excelente! ¿Buscas alguna recomendación o tienes un libro en mente?",
+        "¡Genial! Estoy aquí para ayudarte con cualquier consulta sobre libros.",
+        "¡Qué bueno! Tengo una gran colección de libros. ¿Qué te gustaría leer?",
+        "¡Fantástico! ¿Quieres que te recomiende algo o buscas un libro específico?",
+        "¡Me alegra! ¿En qué puedo asistirte hoy con recomendaciones de libros?"
+    ],
     "info_libro": [
         "Aquí tienes la información completa del libro:",
         "Te muestro los detalles del libro:"
@@ -156,7 +181,7 @@ quick_intentions = {
         "response": "Entiendo. ¿Hay algo más en lo que pueda ayudarte?"
     },
     "continuacion": {
-        "keywords": ["si", "claro", "por supuesto", "me interesa", "me gusta", "excelente", "adelante", "ok", "vale"],
+        "keywords": ["claro", "por supuesto", "me interesa", "me gusta", "excelente", "adelante", "ok", "vale"],
         "response": "¡Perfecto! ¿Qué más te gustaría saber?"
     },
     "agradecer": {
@@ -170,15 +195,55 @@ quick_intentions = {
 }
 
 def normalize_text(text: str) -> str:
+    
+    if text is None or not isinstance(text, str):
+        return ""
     text = text.lower().strip()
     text = remover_acentos(text)
-    text = re.sub(r'[^\w\s]', '', text)
+    
+    text = re.sub(r"\s+", " ", text)
     return text
 
-# --- DETECCIÓN DE INTENCIONES ---
-
-def predict_intent(user_input: str) -> str:
+def predict_intent(user_input, session=None):
+    if user_input is None: return "default" 
     texto = normalize_text(user_input)
+    
+    
+    esperando = contexto_chat.get('esperando_respuesta_como_estas', False) or (session and session.get('esperando_respuesta_como_estas', False))
+    if esperando:
+        respuestas_positivas = [
+            "bien", "muy bien", "excelente", "genial", "fantastico", "maravilloso", "perfecto", "mejor imposible", "super bien", "estupendo", "positivo"
+        ]
+        respuestas_negativas = [
+            "mal", "muy mal", "regular", "mas o menos", "más o menos", "no muy bien", "triste", "deprimido", "cansado", "agotado", "negativo"
+        ]
+        
+        for palabra in respuestas_positivas + respuestas_negativas:
+            patron = rf"\b{re.escape(palabra)}\b"
+            if re.search(patron, texto) or palabra in texto or texto.strip() == palabra:
+                contexto_chat['esperando_respuesta_como_estas'] = False
+                if session:
+                    session['esperando_respuesta_como_estas'] = False
+                    session.modified = True
+                return "respuesta_como_estas"
+      
+        if len(texto.split()) <= 3 and ("mal" in texto or "bien" in texto):
+            contexto_chat['esperando_respuesta_como_estas'] = False
+            if session:
+                session['esperando_respuesta_como_estas'] = False
+                session.modified = True
+            return "respuesta_como_estas"
+       
+        return "default"
+    
+    confirmaciones = ["si", "claro", "por supuesto", "vale", "acepto", "sinopsis", "me interesa"]
+    if any(word in texto for word in confirmaciones):
+        return "afirmacion"
+    
+   
+    for key, data in quick_intentions.items():
+        if any(re.search(rf"\b{re.escape(remover_acentos(kw))}\b", texto) for kw in data["keywords"]):
+            return key
 
     if any(kw in texto for kw in ["busco", "buscar", "libros de", "género", "genero", "autor", "titulo", "area", "área"]):
         if contexto_chat.get('esperando_confirmacion_sinop', False) or contexto_chat.get('esperando_confirmacion_info', False):
@@ -195,33 +260,31 @@ def predict_intent(user_input: str) -> str:
         if any(kw in texto for kw in ["no", "no gracias", "luego", "despues", "otro"]):
             return "fin_info"
 
-    if contexto_chat.get('esperando_confirmacion_sinop', False):
-        if any(word in texto for word in ["si", "sí", "claro", "por favor", "adelante", "sip", "me interesa", "me gusta", "excelente"]):
-            return "confirmar_sinopsis_larga"
-        if any(word in texto for word in ["no", "gracias", "nelson", "luego", "despues"]):
-            contexto_chat['esperando_confirmacion_sinop'] = False
-            return "fin_info"
+    negaciones = ["no", "gracias", "nelson", "ahora no"]
+    if any(word in texto for word in negaciones):
+        contexto_chat['esperando_confirmacion_sinop'] = False
+        return "fin_info"
+
+    if any(remover_acentos(kw) in remover_acentos(texto) for kw in ["que generos tienes", "que generos hay", "generos disponibles", "que generos ofreces", "que tipos de libros", "cuales son los generos", "que generos manejas", "generos que tienes"]):
+        return "generos_disponibles"
+
+    if any(remover_acentos(kw) in remover_acentos(texto) for kw in ["autores populares", "que autores tienes", "autores disponibles", "que autores hay", "autores que tienes", "muestrame autores", "dime autores", "cuales son los autores"]):
+        return "autores_populares"
 
     if any(kw in texto for kw in ["busco", "buscar", "libros de", "quiero libros", "tienes libros", "hay libros", "tienes de"]):
         return "consulta_avanzada"
 
-    if any(kw in texto for kw in ["dame info", "mas info", "detalles", "sinopsis"]):
-        return "info_libro"
-
-    if any(kw in texto for kw in ["como estas", "como esta", "que tal", "como va"]):
-        return "como_estás"
-
-    if any(kw in texto for kw in ["que haces", "que hace", "a que te dedicas"]):
-        return "estado_bot"
-
-    if any(kw in texto for kw in ["hablame de ti", "quien eres", "presentate"]):
-        return "presentacion"
-
-    if any(kw in texto for kw in ["tienes libros", "hay libros", "tienes de", "busco libros", "quiero libros"]) or any(kw in texto for kw in ["paginas", "menos de", "mas de", "maximo", "minimo", "al menos", "no mas de"]):
-        return "consulta_avanzada"
-
-    if any(kw in texto for kw in ["que generos tienes", "que generos hay", "generos disponibles", "que generos ofreces", "que tipos de libros", "cuales son los generos", "que generos manejas", "generos que tienes"]):
-        return "generos_disponibles"
+    # Lógica específica para búsquedas directas
+    if "busco libros de" in texto or "buscar libros de" in texto:
+        partes = texto.split("de", 1)
+        if len(partes) > 1:
+            termino = partes[1].strip().lower()
+            if any(g.lower() == termino for g in GENEROS_DISPONIBLES):
+                return "buscar_genero"
+            elif any(a.lower() in termino or termino in a.lower() for a in AUTORES_POPULARES):
+                return "buscar_autor"
+            else:
+                return "consulta_avanzada"
 
     if contexto_chat.get("esperando_confirmacion_info", False):
         if any(kw in texto for kw in ["si", "sí", "claro", "por supuesto", "adelante", "ok", "vale"]):
@@ -229,10 +292,6 @@ def predict_intent(user_input: str) -> str:
         if any(kw in texto for kw in ["no", "nada", "ninguno", "no gracias", "no quiero"]):
             contexto_chat['esperando_confirmacion_info'] = False
             return "fin_info"
-
-    for key, data in quick_intentions.items():
-        if any(re.search(rf"\b{re.escape(remover_acentos(kw))}\b", texto) for kw in data["keywords"]):
-            return key
 
     if ml_model_loaded:
         try:
@@ -264,203 +323,228 @@ def predict_intent(user_input: str) -> str:
 
     return "default"
 
-# --- GENERACIÓN DE RESPUESTAS ---
+# --- DETECCIÓN DE INTENCIONES ---
 
 def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
+   
     if exclude_ids is None:
         exclude_ids = contexto_chat.get('seen_books', []) or []
     
+   
+    if request and hasattr(request, 'session'):
+        contexto_chat['esperando_confirmacion_sinop'] = request.session.get('esperando_confirmacion_sinop', False)
+        contexto_chat['libro_actual'] = request.session.get('libro_actual', None)
+        contexto_chat['estado'] = request.session.get('estado', 'NORMAL')
+        contexto_chat['esperando_respuesta_como_estas'] = request.session.get('esperando_respuesta_como_estas', False)
+
+    intent = predict_intent(user_input, request.session if request else None)
+
     try:
         marcar_intension(intent)
     except Exception:
         pass
-    
-    feedback_post = contexto_chat.get("estado") == "ESPERANDO_FEEDBACK_POST_SINOP" or contexto_chat.get("context_state") == "ESPERANDO_FEEDBACK_POST_SINOP"
-    if intent == "afirmacion" and feedback_post:
-        contexto_chat["estado"] = "NORMAL"
-        contexto_chat["context_state"] = "IDLE"
-        contexto_chat["esperando_confirmacion_sinop"] = False
-        contexto_chat["esperando_confirmacion_info"] = False
-        result = "¡Me alegra mucho que te haya servido! Disfruta mucho de la lectura. Estaré aquí si necesitas otra recomendación."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
 
-    if intent == "afirmacion":
+    user_input_clean = normalize_text(user_input)
+
+    
+    if intent == "afirmacion" or intent == "confirmar_sinopsis_larga":
+        # ¿Estábamos esperando confirmación para mostrar la sinopsis?
         if contexto_chat.get("esperando_confirmacion_sinop"):
             libro = contexto_chat.get("libro_actual")
             if libro:
+                
+                if request and hasattr(request, 'session'):
+                    request.session['esperando_confirmacion_sinop'] = False
+                    request.session['estado'] = "NORMAL"
                 contexto_chat['esperando_confirmacion_sinop'] = False
+
                 result = (
-                    f"Sinopsis completa de '{libro['titulo']}'\n\n"
-                    f"{libro.get('Sinop')}\n\n"
-                    f"¿Deseas buscar otro libro o explorar más?"
+                    f"*Sinopsis completa de '{libro['titulo']}'*:\n\n"
+                    f"{libro.get('sinop', 'Sinopsis detallada no disponible.')}\n\n"
+                    f"¿Te ha servido esta información o prefieres buscar otro libro?"
                 )
-                contexto_chat['ultima_respuesta_bot'] = result
                 return result
-        return "Entendido!"
-    
-    if intent == "negacion":
-        if contexto_chat.get("esperando_confirmacion_sinop"):
-            contexto_chat['esperando_confirmacion_sinop'] = False
-            result = "Perfecto. ¿Hay algo más que buscas? Puedo buscar por título, autor, género o área."
-            contexto_chat['ultima_respuesta_bot'] = result
-            return result
-        return "Entendido!"
-    
-    if intent == "recomendacion":
-        return handle_recommendation(user_input, request, exclude_ids)
-    
-    if intent in ["consulta_avanzada", "buscar_titulo", "buscar_autor", "buscar_genero", "buscar_area"]:
-        contexto_chat["esperando_confirmacion_sinop"] = False
-        contexto_chat["esperando_confirmacion_info"] = False
-        result = handle_search(intent, user_input, request, exclude_ids)
-        if result:
-            contexto_chat['ultima_respuesta_bot'] = result
-            return result
-    
-    if intent == "mas_opciones":
-        result = handle_mas_opciones()
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
-    
-    if intent == "confirmar_sinopsis_larga":
-        libro = contexto_chat.get('libro_actual')
-        if libro:
-            contexto_chat['esperando_confirmacion_sinop'] = False
-            contexto_chat['libro_actual'] = None
-            result = (
-                f"Sinopsis completa de '{libro['titulo']}'\n\n"
-                f"{libro.get('Sinop')}\n\n"
-                f"¿Te ha convencido este libro o prefieres seguir explorando la lista?"
-            )
-            contexto_chat['ultima_respuesta_bot'] = result
-            return result
-        result = "No tengo información del libro seleccionado."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
-
-    
-    if intent == "info_libro":
-        ultimos_libros = contexto_chat.get("ultimos_libros_encontrados", [])
-        libros_previos = [] # Se inicializa siempre vacía para evitar el Error
         
-        if request and hasattr(request, 'session'):
-            libros_previos = request.session.get('libros_vistos', []) or []
+        
+        if contexto_chat.get("libro_actual"):
+            libro = contexto_chat.get("libro_actual")
+            return f"¡Excelente! Te interesa '{libro['titulo']}'. ¿Quieres que te ayude a conseguir este libro, buscar libros similares o algo más?"
+        
+        
+        return handle_confirmacion_cortesia(user_input)
 
-        mensaje = normalize_text(user_input)
-        libro_seleccionado = None
-
-        if mensaje in ["si", "sí", "dame info", "dame información", "info"]:
-            libro_seleccionado = contexto_chat.get("libro_seleccionado") or contexto_chat.get("libro_seleccionado_para_info")
-            if not libro_seleccionado:
-                if libros_previos:
-                    libro_seleccionado = libros_previos[0]
-                elif ultimos_libros:
-                    libro_seleccionado = ultimos_libros[0]
-        else:
-            libro_seleccionado = contexto_chat.get("libro_seleccionado")
-            if not libro_seleccionado:
-                for lb in libros_previos:
-                    if 'titulo' in lb and normalize_text(lb['titulo']) in mensaje:
-                        libro_seleccionado = lb
-                        break
-            if not libro_seleccionado:
-                for lb in ultimos_libros:
-                    if normalize_text(lb.get('titulo', '')) in mensaje:
-                        libro_seleccionado = lb
-                        break
-
-        if libro_seleccionado:
-            book_id = libro_seleccionado.get('id_libro') or libro_seleccionado.get('id')
-            if book_id is not None:
-                try:
-                    supa_res = supabase.table('libros').select('*').eq('id_libro', book_id).single().execute()
-                    if supa_res and getattr(supa_res, 'data', None):
-                        libro = supa_res.data
-                        contexto_chat['libro_actual'] = libro
-                        contexto_chat['esperando_confirmacion_sinop'] = True
-                        contexto_chat['esperando_confirmacion_info'] = False
-                        result = construir_info_resumida(libro)
-                        result += "\n\nResumen: " + (libro.get('info') or "No disponible")
-                        result += "\n\nDeseas conocer la sinopsis completa? (si/no)"
-                        contexto_chat['ultima_respuesta_bot'] = result
-                        return result
-                except Exception:
-                    pass
-
-        if ultimos_libros:
-            primer_libro = ultimos_libros[0]
-            contexto_chat["esperando_confirmacion_info"] = False
-            result = construir_respuesta_info(primer_libro)
-            contexto_chat['ultima_respuesta_bot'] = result
-            return result
-
-        result = "No tengo información de libros anteriores. Primero busca un libro y luego pide 'dame info'."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
-    
-    if intent == "libro_aceptado":
-        result = "¡Excelente elección! Me alegra que te haya gustado. ¿Quieres que busquemos algo más o prefieres otra recomendación?"
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
     
     if intent == "mostrar_libro_seleccionado":
         libro = contexto_chat.get("libro_seleccionado")
         if libro:
-            contexto_chat["libro_seleccionado_para_info"] = libro
-            contexto_chat["libro_actual"] = libro
-            contexto_chat["esperando_confirmacion_sinop"] = True
-            contexto_chat["esperando_confirmacion_info"] = False
-            info = construir_info_resumida(libro)
-            result = f"{info}\n\n¿Deseas conocer la sinopsis completa? (sí/no)"
-            contexto_chat['ultima_respuesta_bot'] = result
-            return result
-        result = "No encontré ese libro en los resultados anteriores."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
+            id_lib = libro.get('id_libro') or libro.get('id')
+            try:
+                from .config import supabase
+                res = supabase.table("libros").select("*").eq("id_libro", id_lib).single().execute()
+                if res and res.data:
+                    libro_final = res.data
+                    
+                    
+                    if request and hasattr(request, 'session'):
+                        request.session['libro_actual'] = libro_final
+                        request.session['esperando_confirmacion_sinop'] = True
+                        request.session.modified = True
+
+                    contexto_chat['libro_actual'] = libro_final
+                    contexto_chat['esperando_confirmacion_sinop'] = True
+                    
+                    resumen = libro_final.get('info') or "Resumen breve no disponible."
+                    return (
+                        f"*{libro_final['titulo']}*\n\n"
+                        f"{resumen}\n\n"
+                        f"¿Deseas conocer la sinopsis completa? (sí/no)"
+                    )
+            except Exception as e:
+                print(f"Error en mostrar_libro_seleccionado: {e}")
+        return "No pude encontrar información de ese libro."
+
     
-    if intent == "fin_info":
-        contexto_chat["esperando_confirmacion_info"] = False
-        contexto_chat["esperando_confirmacion_sinop"] = False
-        contexto_chat["libro_actual"] = None
-        contexto_chat["libro_seleccionado"] = None
-        result = "Entendido. ¿Hay algo más en lo que pueda ayudarte? Puedo buscar libros por título, autor, género o área de estudio."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
+    if intent == "info_libro":
+        ultimos_libros = contexto_chat.get("ultimos_libros_encontrados", [])
+        libro_seleccionado = None
 
-    if intent == "continuar_busqueda":
-        result = "Perfecto, dime qué tipo de libros te gustaría explorar ahora (género, autor, área, etc.)."
-        contexto_chat['ultima_respuesta_bot'] = result
-        return result
+        
+        if user_input_clean in ["si", "sí", "dame info", "info", "detalles"]:
+            if ultimos_libros:
+                libro_seleccionado = ultimos_libros[0]
+        else:
+            for lb in ultimos_libros:
+                if normalize_text(lb.get('titulo', '')) in user_input_clean:
+                    libro_seleccionado = lb
+                    break
+        
+        
+        if libro_seleccionado:
+            id_lib = libro_seleccionado.get('id_libro') or libro_seleccionado.get('id')
+            try:
+                from .config import supabase
+                res = supabase.table("libros").select("*").eq("id_libro", id_lib).single().execute()
+                if res and res.data:
+                    libro_final = res.data
+                    
+                   
+                    if request and hasattr(request, 'session'):
+                        request.session['libro_actual'] = libro_final
+                        request.session['esperando_confirmacion_sinop'] = True
+                        request.session.modified = True
 
-    feedback_result = handle_feedback(intent)
-    if feedback_result:
-        contexto_chat['ultima_respuesta_bot'] = feedback_result
-        return feedback_result
+                    contexto_chat['libro_actual'] = libro_final
+                    contexto_chat['esperando_confirmacion_sinop'] = True
+                    
+                    resumen = libro_final.get('info') or "Resumen breve no disponible."
+                    return (
+                        f"*{libro_final['titulo']}*\n\n"
+                        f"{resumen}\n\n"
+                        f"¿Deseas conocer la sinopsis completa? (sí/no)"
+                    )
+            except Exception as e:
+                print(f"Error en info_libro: {e}")
+        
+        return "No tengo claro de qué libro hablamos. ¿Podrías decirme el título?"
+
+    
+    if intent == "saludo":
+        return handle_saludo_social(user_input)
+
+    if intent == "como_estás":
+        contexto_chat['esperando_respuesta_como_estas'] = True
+        if request and hasattr(request, 'session'):
+            request.session['esperando_respuesta_como_estas'] = True
+            request.session.modified = True
+        res_list = responses.get(intent, responses["default"])
+        return random.choice(res_list)
+
+    if intent == "respuesta_como_estas":
+        res_list = responses.get(intent, responses["default"])
+        return random.choice(res_list)
+
+    if intent == "negacion":
+        if request and hasattr(request, 'session'):
+            request.session['esperando_confirmacion_sinop'] = False
+        return "Entendido. ¿Hay algo más que busques? Puedo buscar por título, autor o género."
+
+    if intent == "recomendacion":
+        return handle_recommendation(user_input, request, exclude_ids)
+
+    if intent in ["buscar_titulo", "buscar_autor", "buscar_genero", "consulta_avanzada"]:
+       
+        if request and hasattr(request, 'session'):
+            request.session['esperando_confirmacion_sinop'] = False
+        return handle_search(intent, user_input, request, exclude_ids)
+
     
     if intent == "generos_disponibles":
-        contexto_chat["esperando_confirmacion_sinop"] = False
-        contexto_chat["esperando_confirmacion_info"] = False
-        try:
-            from .config import supabase
-            result = supabase.table("libros").select("gen").execute()
-            if result.data:
-                generos = set()
-                for libro in result.data:
-                    gen = libro.get('gen', '').strip()
-                    if gen:
-                        generos.add(gen)
-                generos_ordenados = sorted(list(generos))
-                generos_texto = ", ".join(generos_ordenados)
-                result = f"Estos son todos los géneros disponibles en mi colección:\n\n{generos_texto}\n\n¿Te gustaría buscar libros de algún género específico?"
-                contexto_chat['ultima_respuesta_bot'] = result
-                return result
-        except Exception as e:
-            print(f"Error al obtener géneros: {e}")
-            pass
+        indice = contexto_chat.get('paginacion_indice', 0)
+        contexto_chat['paginacion_tipo'] = 'generos'
+        contexto_chat['paginacion_indice'] = indice
+        generos_pagina = GENEROS_DISPONIBLES[indice:indice+10]
+        if generos_pagina:
+            lista = "\n".join(f"- {g}" for g in generos_pagina)
+            if indice + 10 < len(GENEROS_DISPONIBLES):
+                return f"Estos son géneros disponibles en mi biblioteca:\n\n{lista}\n\n¿Quieres ver otros 10?"
+            else:
+                return f"Estos son géneros disponibles en mi biblioteca:\n\n{lista}"
+        else:
+            return "No hay más géneros disponibles."
+
+    if intent == "autores_populares":
+        indice = contexto_chat.get('paginacion_indice', 0)
+        contexto_chat['paginacion_tipo'] = 'autores'
+        contexto_chat['paginacion_indice'] = indice
+        autores_pagina = AUTORES_POPULARES[indice:indice+10]
+        if autores_pagina:
+            lista = "\n".join(f"- {a}" for a in autores_pagina)
+            if indice + 10 < len(AUTORES_POPULARES):
+                return f"Estos son autores disponibles en mi biblioteca:\n\n{lista}\n\n¿Quieres ver otros 10?"
+            else:
+                return f"Estos son autores disponibles en mi biblioteca:\n\n{lista}"
+        else:
+            return "No hay más autores disponibles."
+
+    if intent == "mas_opciones":
+        tipo = contexto_chat.get('paginacion_tipo')
+        if tipo == 'generos':
+            indice = contexto_chat.get('paginacion_indice', 0) + 10
+            contexto_chat['paginacion_indice'] = indice
+            generos_pagina = GENEROS_DISPONIBLES[indice:indice+10]
+            if generos_pagina:
+                lista = "\n".join(f"- {g}" for g in generos_pagina)
+                if indice + 10 < len(GENEROS_DISPONIBLES):
+                    return f"Aquí tienes otros 10 géneros:\n\n{lista}\n\n¿Quieres ver otros 10?"
+                else:
+                    return f"Aquí tienes los últimos géneros:\n\n{lista}"
+            else:
+                return "No hay más géneros disponibles."
+        elif tipo == 'autores':
+            indice = contexto_chat.get('paginacion_indice', 0) + 10
+            contexto_chat['paginacion_indice'] = indice
+            autores_pagina = AUTORES_POPULARES[indice:indice+10]
+            if autores_pagina:
+                lista = "\n".join(f"- {a}" for a in autores_pagina)
+                if indice + 10 < len(AUTORES_POPULARES):
+                    return f"Aquí tienes otros 10 autores:\n\n{lista}\n\n¿Quieres ver otros 10?"
+                else:
+                    return f"Aquí tienes los últimos autores:\n\n{lista}"
+            else:
+                return "No hay más autores disponibles."
+        else:
+           
+            res_list = responses.get(intent, responses["default"])
+            return random.choice(res_list)
+
     
+    social = handle_saludo_social(user_input)
+    if social and intent == "default":
+        return social
+
+    
+    if intent in quick_intentions:
+        return quick_intentions[intent]["response"]
+
     res_list = responses.get(intent, responses["default"])
-    respuesta_base = random.choice(res_list)
-    registrar_en_historial("bot", respuesta_base)
-    contexto_chat['ultima_respuesta_bot'] = respuesta_base
-    return respuesta_base
+    return random.choice(res_list)

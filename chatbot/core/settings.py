@@ -93,7 +93,8 @@ DATABASES = {
         'PORT': os.getenv("MYSQL_PORT"),
         'HOST': 'db-mysql',
         'OPTIONS': {
-          "read_default_file": "./database/my.cnf"
+          "read_default_file": "./database/my.cnf",
+          'charset': 'utf8mb4',
         },
         "TEST": {
           "NAME": "test_db"
@@ -169,6 +170,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://0.0.0.0:5173",
     "http://localhost:5173",
+    "http://localhost:8080",
 ]
 
 CORS_ALLOW_HEADERS = (
@@ -183,8 +185,10 @@ CSRF_TRUSTED_ORIGINS = [
   "http://127.0.0.1:8000", 
   "http://0.0.0.0:5173",
   "http://localhost:5173",
-]
+  "http://localhost:8080",
+ ]
 
-CSRF_COOKIE_SAMESITE = 'Strict'
-SESSION_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = False

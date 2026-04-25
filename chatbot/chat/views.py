@@ -6,7 +6,7 @@ from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
 from .permissions import MessagePermisions
 from rest_framework.views import APIView, Response
 from rest_framework.response import Response
-from ML.chatbot import get_response, predict_intent
+from ML.core import get_response, predict_intent
 from ML.config import supabase
 
 class ListPostChats(generics.ListCreateAPIView):
@@ -51,12 +51,9 @@ class PostMessage(APIView):
     retries = 0
 
     while retries < 3:
-  # 1. Detectar si el usuario pide info del libro actual
       text_lower = serializer.validated_data["text"].lower()
       
-        # 2. Si es una búsqueda normal
-      intent = predict_intent(serializer.validated_data["text"])
-      #def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
+      intent = predict_intent(serializer.validated_data["text"], request.session)
       chatbot_answer = get_response(intent, serializer.validated_data["text"], request, [])
 
       if chatbot_answer is not None: 
@@ -65,7 +62,7 @@ class PostMessage(APIView):
       retries += 1
 
     if retries >= 3:
-    #after 3 retries and no message sent, return 500.
+  
       return Response({"error": "El chatbot no se encuentra disponible"}, status=500)
 
     chat = Chat.objects.get(pk = pk)

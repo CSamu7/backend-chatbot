@@ -1,3 +1,4 @@
+import joblib
 import os
 import django
 from dotenv import load_dotenv
@@ -19,14 +20,16 @@ from chat.models import Chat, Message
 from authentication.models import User
 
 # Cargar modelo spacy
-import spacy
+# import spacy
 
-try:
-    nlp = spacy.load("es_core_news_md")
-except OSError:
-    import subprocess
-    subprocess.run(["python", "-m", "spacy", "download", "es_core_news_md"])
-    nlp = spacy.load("es_core_news_md")
+# try:
+#     nlp = spacy.load("es_core_news_md")
+# except OSError:
+#     import subprocess
+#     subprocess.run(["python", "-m", "spacy", "download", "es_core_news_md"])
+#     nlp = spacy.load("es_core_news_md")
+
+nlp = None  # Temporalmente None
 
 # Cargar modelo de ML
 import pickle
@@ -34,22 +37,27 @@ import os
 
 vectorizer = None
 clf = None
+ml_model_loaded = False
+
 try:
-    model_path = os.path.join(os.path.dirname(__file__), "chatbot_model.pkl")
-    with open(model_path, "rb") as f:
-        vectorizer, clf = pickle.load(f)
+    # 1. Definir rutas
+    vectorizer_path = os.path.join(os.path.dirname(__file__), "vectorizador.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "modelo_intentos.pkl")
+
+    # 2. Cargar Vectorizador 
+    vectorizer = joblib.load(vectorizer_path)
+
+    # 3. Cargar Modelo 
+    clf = joblib.load(model_path) 
+
     ml_model_loaded = True
+    print("¡Cerebro del bot cargado correctamente!")
+
 except FileNotFoundError:
-    print(f"Advertencia: Archivo del modelo no encontrado en {model_path}")
-    vectorizer = None
-    clf = None
-    ml_model_loaded = False
+    print("Advertencia: Archivos del modelo no encontrados en la carpeta ML")
 except Exception as e:
     print(f"Error al cargar el modelo: {e}")
-    vectorizer = None
-    clf = None
-    ml_model_loaded = False
-
+    
 # ==================== SUPABASE ====================
 from supabase import create_client, Client
 

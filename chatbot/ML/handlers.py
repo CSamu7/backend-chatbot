@@ -39,7 +39,7 @@ def handle_saludo_social(user_input):
             "Excelente. Justo estaba terminando de organizar unos estantes virtuales. ¿Cómo va todo por allá?"
         ]
         return random.choice(respuestas)
-    return "Hola. Qué gusto verte de nuevo. ¿Qué tipo de libros te apetece explorar hoy?"
+    return "¡Hola! ¿En qué puedo ayudarte con libros hoy?"
 
 def handle_recommendation(user_input, request, exclude_ids):
     vistos_actualizados = list(exclude_ids) if exclude_ids else []
@@ -109,7 +109,14 @@ def handle_search(intent, user_input, request, exclude_ids):
         if resultados and termino not in intereses:
             intereses.append(termino)
     elif intent == "consulta_avanzada":
-        resultados = buscar_avanzado(criterios, exclude_ids)
+        if criterios.get('generos'):
+            
+            genero = criterios['generos'][0]
+            resultados = buscar_libro_por_genero(genero, exclude_ids)
+            if resultados and genero not in intereses:
+                intereses.append(genero)
+        else:
+            resultados = buscar_avanzado(criterios, exclude_ids)
 
     if resultados:
         contexto_chat["ultimos_libros_encontrados"] = resultados
@@ -178,9 +185,9 @@ def load_chat_history():
     """
     try:
         from chat.models import Message
-        # Traemos los últimos 15 mensajes para no saturar
+        
         mensajes = Message.objects.all().order_by('-created_at')[:15]
-        # Los devolvemos en orden cronológico inverso (el más nuevo al final)
+       
         return sorted(mensajes, key=lambda x: x.created_at)
     except Exception as e:
         print(f"Error al cargar el historial: {e}")

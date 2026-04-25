@@ -1,11 +1,20 @@
-﻿import sys
-from .core import predict_intent, get_response
+import sys
+
+from ML.core import get_response, predict_intent
+
+from .handlers import handle_recommendation
 from .utils import remover_acentos
 from .context import (
     contexto_chat, registrar_en_historial
 )
 from .search import buscar_libro_por_titulo, extraer_criterios_avanzados
 from .config import Chat, Message, User
+
+def obtener_id_libro(libro):
+    """Extrae el ID ya sea de un diccionario o de un objeto de modelo."""
+    if isinstance(libro, dict):
+        return libro.get('id_libro') or libro.get('id')
+    return getattr(libro, 'id_libro', getattr(libro, 'id', None))
 
 def sanitize_text(text: str) -> str:
     if text is None:
@@ -259,33 +268,28 @@ def chatbot(user_email=None, get_input=None):
 
     print("\n" + "="*60 + "\nPuedo buscar por Título, Autor, Género o Área.\nEscribe 'salir' para terminar.\n")
 
-    #BUCLE PRINCIPAL DE CONVERSACIÓN
+# BUCLE PRINCIPAL DE CONVERSACIÓN
     while True:
         try:
             raw_input = get_input("Tú: ")
             user_input = raw_input.strip()
             
-      
             if not user_input or not user_input.strip():
                 print("\nBookbot: No pude escuchar nada. ¿Podrías escribir tu mensaje de nuevo?")
                 continue
-            # -----------------
 
             if user_input.lower().strip() in ["salir", "adios", "adiós", "adós", "bye", "exit", "chao"]:
                 print("Bookbot: ¡Hasta luego!")
                 break
 
-            
             guardar_mensaje_en_bd(chat, user, "usuario", user_input)
             registrar_en_historial("usuario", user_input)
 
-           
             comentario_personal = procesar_comentarios_personales(user_input)
             if comentario_personal:
                 print(f"\nBookbot: {comentario_personal}\n")
                 continue
 
-           
             if contexto_chat.get('estado') == 'ESPERANDO_PAGINACION':
                 t = user_input.lower()
                 if any(keyword in t for keyword in ["más", "mas", "otros", "siguiente", "no", "ver otros", "muéstrame más", "muestrame mas"]):
@@ -321,7 +325,6 @@ def chatbot(user_email=None, get_input=None):
                 else:
                     contexto_chat['estado'] = 'NORMAL'
 
-           
             lower_input = user_input.lower()
             if "qué autores" in lower_input or "que autores" in lower_input:
                 from .search import obtener_lista_autores
@@ -345,19 +348,16 @@ def chatbot(user_email=None, get_input=None):
                 print(f"\nBookbot: {respuesta}\n")
                 continue
 
-            
             respuesta = ""
             nuevo_estado = "IDLE"
             input_norm = remover_acentos(user_input.lower())
 
-           
             user_input_clean = user_input.lower().strip()
             if user_input_clean in ["si", "sí", "yes", "claro", "por supuesto", "me interesa", "me gusta", "excelente", "oki", "ok"]:
                 intent = "afirmacion"
             elif user_input_clean in ["no", "nones", "para nada", "nope"]:
                 intent = "negacion"
             else:
-                
                 if "recomienda" in user_input.lower() or "recomiéndame" in user_input.lower():
                     intent = "recomendacion"
                 else:
@@ -365,11 +365,6 @@ def chatbot(user_email=None, get_input=None):
 
             search_intents = ["consulta_avanzada", "buscar_titulo", "buscar_autor", "buscar_genero", "buscar_area", "info_libro"]
 
-           
-            if contexto_chat.get("context_state") == 'AWAITING_COURTESY' and intent in search_intents:
-                contexto_chat["context_state"] = "IDLE"
-
-            
             if contexto_chat.get("context_state") == 'AWAITING_COURTESY' and intent in search_intents:
                 contexto_chat["context_state"] = "IDLE"
 
@@ -381,21 +376,35 @@ def chatbot(user_email=None, get_input=None):
                     respuesta = "No hay problema, sigamos buscando. ¿Qué otro género o autor te gustaría explorar?"
                     nuevo_estado = "IDLE"
 
-          
             if not respuesta and intent not in search_intents:
                 social = respuesta_social(user_input)
                 if social:
                     print(f"\nBookbot: {social}\n")
                     continue
             
+            # --- DETECCIÓN E HISTORIAL DE GÉNERO ---
             inferred_genre = infer_genre_from_query(user_input)
             if inferred_genre:
                 contexto_chat['current_genre'] = inferred_genre
+                if 'historial_generos_backup' not in contexto_chat:
+                    contexto_chat['historial_generos_backup'] = []
+                if inferred_genre not in contexto_chat['historial_generos_backup']:
+                    contexto_chat['historial_generos_backup'].append(inferred_genre)
+
                 if chat.last_genre != inferred_genre:
                     chat.last_genre = inferred_genre
                     chat.save(update_fields=['last_genre'])
 
-            
+            # --- LÓGICA DE RECOMENDACIÓN ---
+            if intent == "recomendacion" and not inferred_genre:
+                from ML.handlers import handle_recommendation
+                respuesta = handle_recommendation(user_input, request=None, exclude_ids=libros_vistos_ids)
+                
+                if contexto_chat.get("ultimos_libros_encontrados"):
+                    ids_mostrados = [obtener_id_libro(l) for l in contexto_chat["ultimos_libros_encontrados"][:5]]
+                    libros_vistos_ids.extend(ids_mostrados)
+                nuevo_estado = 'IDLE'
+
             if intent == "afirmacion" and contexto_chat.get('esperando_confirmacion_sinop'):
                 libro = contexto_chat.get('libro_actual') or contexto_chat.get('libro_seleccionado') or {}
                 sinopsis_larga = libro.get('Sinop') or libro.get('sinop')
@@ -420,7 +429,6 @@ def chatbot(user_email=None, get_input=None):
                 contexto_chat['esperando_confirmacion_sinop'] = False
                 nuevo_estado = 'IDLE'
 
-            
             if not respuesta and contexto_chat.get("context_state") == 'AWAITING_COURTESY' and intent not in search_intents:
                 if any(word in input_norm for word in ['mal', 'triste', 'regular']):
                     respuesta = 'Lamento mucho escuchar eso. Un buen libro suele ayudar. ¿Buscamos algo de Fantasía o Romance?'
@@ -428,20 +436,57 @@ def chatbot(user_email=None, get_input=None):
                     respuesta = '¡Me alegra mucho! ¿Qué tipo de libros te apetece explorar hoy?'
                 nuevo_estado = 'IDLE'
 
-            
             if not respuesta:
                 respuesta = get_response(intent, user_input, request=None, exclude_ids=libros_vistos_ids)
+                if contexto_chat.get("ultimos_libros_mostrados"):
+                    libros_vistos_ids.extend(contexto_chat["ultimos_libros_mostrados"])
 
-                
-                libros_vistos_ids.extend(contexto_chat.get("ultimos_libros_mostrados", []))
-
-                
                 if intent in ["como_estás", "estado_bot", "presentacion"]:
                     nuevo_estado = 'AWAITING_COURTESY'
+                
+                
                 elif intent == "info_libro":
                     nuevo_estado = "ESPERANDO_CONFIRMACION_SINOP"
+                    contexto_chat['esperando_confirmacion_sinop'] = True 
+                    
+                    if "¿Deseas conocer" not in respuesta:
+                        respuesta += "\n\n¿Deseas conocer la sinopsis completa? (sí/no)"
+                    
+                    libros_encontrados = contexto_chat.get("ultimos_libros_encontrados", [])
+                    libro_detectado = None
+                    
+                    if user_input_clean == "dame info" or "primero" in user_input_clean:
+                        if libros_encontrados:
+                            libro_detectado = libros_encontrados[0]
+                    else:
+                        for lib in libros_encontrados:
+                            titulo = lib.get('titulo', '').lower()
+                            if titulo and titulo in user_input_clean:
+                                libro_detectado = lib
+                                break
+                    
+                    if not libro_detectado and libros_encontrados:
+                        primera_linea = respuesta.split('\n')[0].strip()
+                        for lib in libros_encontrados:
+                            if lib.get('titulo', '') in primera_linea:
+                                libro_detectado = lib
+                                break
 
-           
+                    if libro_detectado:
+                        id_lib = obtener_id_libro(libro_detectado)
+                        try:
+                            from .config import supabase
+                            res = supabase.table("libros").select("*").eq("id_libro", id_lib).execute()
+                            if res.data:
+                                contexto_chat['libro_actual'] = res.data[0]
+                                contexto_chat['libro_seleccionado'] = res.data[0]
+                            else:
+                                contexto_chat['libro_actual'] = libro_detectado
+                        except Exception as e:
+                            print(f"Aviso interno (Supabase): {e}")
+                            contexto_chat['libro_actual'] = libro_detectado
+                
+
             if respuesta:
                 contexto_chat["context_state"] = nuevo_estado
                 guardar_mensaje_en_bd(chat, user, "bookbot", respuesta)
@@ -453,4 +498,4 @@ def chatbot(user_email=None, get_input=None):
         except KeyboardInterrupt:
             break
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error detectado: {e}")
