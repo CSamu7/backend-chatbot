@@ -207,8 +207,26 @@ def normalize_text(text: str) -> str:
 def predict_intent(user_input, session=None):
     if user_input is None: return "default" 
     texto = normalize_text(user_input)
-    
-    
+
+
+    if any(kw in texto for kw in ["dame info", "el primero", "info del primero", "la primera"]):
+        return "info_primer_libro"
+
+    palabras_busqueda = ["busco", "buscar", "encuentra", "dame libros", "libros de", "quiero leer", "género", "genero", "autor", "titulo", "area", "área"]
+    if any(kw in texto for kw in palabras_busqueda):
+        contexto_chat['esperando_confirmacion_sinop'] = False
+        contexto_chat['esperando_confirmacion_info'] = False
+        contexto_chat['esperando_respuesta_como_estas'] = False
+        contexto_chat['libro_actual'] = None
+        contexto_chat['libro_seleccionado'] = None
+        contexto_chat['libro_seleccionado_para_info'] = None
+        if session:
+            session['esperando_respuesta_como_estas'] = False
+            session['esperando_confirmacion_libro'] = False
+            session['ultimo_libro_visto'] = None
+            session.modified = True
+
+
     esperando = contexto_chat.get('esperando_respuesta_como_estas', False) or (session and session.get('esperando_respuesta_como_estas', False))
     if esperando:
         respuestas_positivas = [
@@ -244,14 +262,6 @@ def predict_intent(user_input, session=None):
     for key, data in quick_intentions.items():
         if any(re.search(rf"\b{re.escape(remover_acentos(kw))}\b", texto) for kw in data["keywords"]):
             return key
-
-    if any(kw in texto for kw in ["busco", "buscar", "libros de", "género", "genero", "autor", "titulo", "area", "área"]):
-        if contexto_chat.get('esperando_confirmacion_sinop', False) or contexto_chat.get('esperando_confirmacion_info', False):
-            contexto_chat['esperando_confirmacion_sinop'] = False
-            contexto_chat['esperando_confirmacion_info'] = False
-            contexto_chat['libro_actual'] = None
-            contexto_chat['libro_seleccionado'] = None
-            contexto_chat['libro_seleccionado_para_info'] = None
 
     ultima_respuesta = contexto_chat.get('ultima_respuesta_bot', '').lower()
     if "te ha convencido este libro" in ultima_respuesta:
@@ -326,6 +336,114 @@ def predict_intent(user_input, session=None):
 # --- DETECCIÓN DE INTENCIONES ---
 
 def get_response(intent: str, user_input: str, request=None, exclude_ids: list = None) -> str:
+
+    # Manejo especial para 'dame info', 'el primero', etc.
+    if intent == "info_primer_libro":
+        # Buscar la lista de libros en sesión o contexto
+        ultimos_libros = []
+        if request and hasattr(request, 'session') and 'ultimos_libros_encontrados' in request.session:
+            ultimos_libros = request.session['ultimos_libros_encontrados']
+        else:
+            ultimos_libros = contexto_chat.get('ultimos_libros_encontrados', [])
+        
+        if ultimos_libros:
+            libro = ultimos_libros[0]
+            id_lib = libro.get('id_libro') or libro.get('id')
+            try:
+                from .config import supabase
+                res = supabase.table("libros").select("*").eq("id_libro", id_lib).single().execute()
+                if res and res.data:
+                    libro_final = res.data
+                    
+                    if request and hasattr(request, 'session'):
+                        request.session['libro_actual'] = libro_final
+                        request.session['esperando_confirmacion_sinop'] = True
+                        request.session['estado_conversacion'] = 'esperando_sinopsis'  
+                        request.session.modified = True
+                    contexto_chat['libro_actual'] = libro_final
+                    contexto_chat['esperando_confirmacion_sinop'] = True
+                    contexto_chat['estado_conversacion'] = 'esperando_sinopsis'  
+                    resumen = libro_final.get('info') or "Resumen breve no disponible."
+                    return (
+                        f"*{libro_final['titulo']}*\n\n"
+                        f"{resumen}\n\n"
+                        f"¿Deseas conocer la sinopsis completa? (sí/no)"
+                    )
+            except Exception as e:
+                print(f"Error en info_primer_libro: {e}")
+            return "No pude encontrar información de ese libro."
+        else:
+            return "No tengo claro de qué libro hablamos. ¿Podrías hacer una búsqueda primero?"
+    
+    elif intent == "confirmacion_sinopsis" or (
+        contexto_chat.get('esperando_confirmacion_sinop') and 
+        user_input.lower() in ['sí', 'si', 'yes', 's', 'claro', 'dale', 'ok']
+    ):
+        libro_actual = None
+        if request and hasattr(request, 'session') and 'libro_actual' in request.session:
+            libro_actual = request.session['libro_actual']
+        else:
+            libro_actual = contexto_chat.get('libro_actual')
+        
+        if libro_actual:
+            sinopsis = libro_actual.get('sinopsis') or "Sinopsis no disponible."
+            # LIMPIAR ESTADO después de mostrar sinopsis
+            if request and hasattr(request, 'session'):
+                request.session['esperando_confirmacion_sinop'] = False
+                request.session['estado_conversacion'] = 'sinopsis_entregada'
+                request.session.modified = True
+            contexto_chat['esperando_confirmacion_sinop'] = False
+            contexto_chat['estado_conversacion'] = 'sinopsis_entregada'
+            
+            return (
+                f"*Sinopsis completa de '{libro_actual['titulo']}'*:\n"
+                f"{sinopsis}\n\n"
+                f"¿Te ha servido esta información o prefieres buscar otro libro?"
+            )
+        else:
+            
+            if request and hasattr(request, 'session'):
+                request.session['esperando_confirmacion_sinop'] = False
+                request.session.modified = True
+            contexto_chat['esperando_confirmacion_sinop'] = False
+            return "No tengo claro de qué libro hablamos. ¿Podrías hacer una búsqueda primero?"
+    
+   
+    elif (contexto_chat.get('estado_conversacion') == 'sinopsis_entregada' or 
+          (request and hasattr(request, 'session') and 
+           request.session.get('estado_conversacion') == 'sinopsis_entregada')):
+        
+        
+        if any(palabra in user_input.lower() for palabra in ['buscar', 'busco', 'otro', 'diferente', 'fantasía', 'fantasia', 'terror', 'romance']):
+            # LIMPIAR ESTADO COMPLETAMENTE
+            if request and hasattr(request, 'session'):
+                request.session['estado_conversacion'] = 'libre'
+                request.session['esperando_confirmacion_sinop'] = False
+               
+                request.session.modified = True
+            contexto_chat['estado_conversacion'] = 'libre'
+            contexto_chat['esperando_confirmacion_sinop'] = False
+            
+            
+            return f"¡Entendido! ¿Qué tipo de libro buscas? Dime género, autor o título."
+        
+        elif any(palabra in user_input.lower() for palabra in ['sirvió', 'sirvio', 'servido', 'interesa', 'gustó', 'gusto']):
+            
+            if request and hasattr(request, 'session'):
+                request.session['estado_conversacion'] = 'libre'
+                request.session['esperando_confirmacion_sinop'] = False
+                request.session.modified = True
+            contexto_chat['estado_conversacion'] = 'libre'
+            contexto_chat['esperando_confirmacion_sinop'] = False
+            
+            libro_actual = contexto_chat.get('libro_actual')
+            titulo = libro_actual['titulo'] if libro_actual else 'ese libro'
+            return f"¡Excelente! Me alegra que te haya gustado '{titulo}'. ¿Quieres que te ayude a conseguir este libro o prefieres buscar algo diferente?"
+        
+        else:
+            
+            return "No entendí bien tu respuesta. ¿Te gustaría buscar otro libro o necesitas algo más sobre este?"
+
    
     if exclude_ids is None:
         exclude_ids = contexto_chat.get('seen_books', []) or []
@@ -410,48 +528,43 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
 
         
         if user_input_clean in ["si", "sí", "dame info", "info", "detalles"]:
-            if ultimos_libros:
-                libro_seleccionado = ultimos_libros[0]
-        else:
-            for lb in ultimos_libros:
-                if normalize_text(lb.get('titulo', '')) in user_input_clean:
-                    libro_seleccionado = lb
-                    break
-        
-        
-        if libro_seleccionado:
-            id_lib = libro_seleccionado.get('id_libro') or libro_seleccionado.get('id')
-            try:
-                from .config import supabase
-                res = supabase.table("libros").select("*").eq("id_libro", id_lib).single().execute()
-                if res and res.data:
-                    libro_final = res.data
-                    
-                   
-                    if request and hasattr(request, 'session'):
-                        request.session['libro_actual'] = libro_final
-                        request.session['esperando_confirmacion_sinop'] = True
-                        request.session.modified = True
+            if intent == "info_libro":
+                # Usar siempre el libro_actual si existe y el usuario pide 'dame info', 'info', etc.
+                libro_actual = contexto_chat.get("libro_actual")
+                libro_seleccionado = None
 
-                    contexto_chat['libro_actual'] = libro_final
-                    contexto_chat['esperando_confirmacion_sinop'] = True
-                    
-                    resumen = libro_final.get('info') or "Resumen breve no disponible."
-                    return (
-                        f"*{libro_final['titulo']}*\n\n"
-                        f"{resumen}\n\n"
-                        f"¿Deseas conocer la sinopsis completa? (sí/no)"
-                    )
-            except Exception as e:
-                print(f"Error en info_libro: {e}")
-        
-        return "No tengo claro de qué libro hablamos. ¿Podrías decirme el título?"
+                if user_input_clean in ["si", "sí", "dame info", "info", "detalles"] and libro_actual:
+                    libro_seleccionado = libro_actual
+                else:
+                    ultimos_libros = contexto_chat.get("ultimos_libros_encontrados", [])
+                    for lb in ultimos_libros:
+                        if normalize_text(lb.get('titulo', '')) in user_input_clean:
+                            libro_seleccionado = lb
+                            break
 
-    
-    if intent == "saludo":
-        return handle_saludo_social(user_input)
-
-    if intent == "como_estás":
+                if libro_seleccionado:
+                    id_lib = libro_seleccionado.get('id_libro') or libro_seleccionado.get('id')
+                    try:
+                        from .config import supabase
+                        res = supabase.table("libros").select("*").eq("id_libro", id_lib).single().execute()
+                        if res and res.data:
+                            libro_final = res.data
+                            # Guardar como libro_actual para futuras referencias
+                            if request and hasattr(request, 'session'):
+                                request.session['libro_actual'] = libro_final
+                                request.session['esperando_confirmacion_sinop'] = True
+                                request.session.modified = True
+                            contexto_chat['libro_actual'] = libro_final
+                            contexto_chat['esperando_confirmacion_sinop'] = True
+                            resumen = libro_final.get('info') or "Resumen breve no disponible."
+                            return (
+                                f"*{libro_final['titulo']}*\n\n"
+                                f"{resumen}\n\n"
+                                f"¿Deseas conocer la sinopsis completa? (sí/no)"
+                            )
+                    except Exception as e:
+                        print(f"Error en info_libro: {e}")
+                return "No tengo claro de qué libro hablamos. ¿Podrías decirme el título?"
         contexto_chat['esperando_respuesta_como_estas'] = True
         if request and hasattr(request, 'session'):
             request.session['esperando_respuesta_como_estas'] = True

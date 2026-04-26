@@ -120,6 +120,13 @@ def handle_search(intent, user_input, request, exclude_ids):
 
     if resultados:
         contexto_chat["ultimos_libros_encontrados"] = resultados
+        # Guardar el primer libro mostrado como libro_actual para el flujo de 'dame info'
+        if resultados:
+            contexto_chat["libro_actual"] = resultados[0]
+            if request and hasattr(request, 'session'):
+                request.session['libro_actual'] = resultados[0]
+                request.session['ultimos_libros_encontrados'] = resultados
+                request.session.modified = True
         if request and hasattr(request, 'session'):
             request.session['historial_generos'] = intereses
         contexto_chat['historial_generos_backup'] = intereses
