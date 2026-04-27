@@ -403,6 +403,7 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
             contexto_chat['paginacion_tipo'] = None
             return f"Ya te he mostrado todos los {tipo}. ¿Qué te gustaría buscar?"
 
+
     if intent == "generos_disponibles" or any(p in mensaje_norm for p in ["que generos", "lista de generos", "generos tienes"]):
         try:
             from .config import supabase
@@ -413,6 +414,16 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
                 return f"Tengo {len(generos)} géneros. Aquí los primeros 10:\n\n" + "\n".join([f"- {g}" for g in generos[:10]]) + "\n\n¿Quieres ver otros 10?"
         except Exception: pass
 
+    if intent == "autores_disponibles" or any(p in mensaje_norm for p in ["que autores", "lista de autores", "autores tienes"]):
+        try:
+            from .config import supabase
+            result = supabase.table("libros").select("autor").execute()
+            if result.data:
+                autores = sorted(list(set([l.get('autor', '').strip() for l in result.data if l.get('autor', '').strip()])))
+                contexto_chat.update({'paginacion_lista': autores, 'paginacion_tipo': 'autores', 'paginacion_indice': 0})
+                return f"Tengo {len(autores)} autores. Aquí los primeros 10:\n\n" + "\n".join([f"- {a}" for a in autores[:10]]) + "\n\n¿Quieres ver otros 10?"
+        except Exception: pass
+
     intents_busqueda = ["consulta_avanzada", "buscar_titulo", "buscar_autor", "buscar_genero", "buscar_area"]
     es_patron_busqueda = any(w in mensaje_norm for w in ["busco libros de", "libros de", "buscar libros de", "encuentra libros de"])
     
@@ -420,5 +431,4 @@ def get_response(intent: str, user_input: str, request=None, exclude_ids: list =
         search_intent = intent if intent in intents_busqueda else "consulta_avanzada"
         return handle_search(search_intent, user_input, request, exclude_ids)
 
-    # Fallback final
     return "No estoy seguro de entender tu consulta. ¿Puedes ser más específico? Por ejemplo: 'busco libros de terror' o '¿qué autores tienes?'"
